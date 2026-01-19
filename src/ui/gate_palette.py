@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
     QScrollArea, QFrame
 )
 from PyQt6.QtCore import Qt, QMimeData
-from PyQt6.QtGui import QDrag, QPainter, QColor, QFont
+from PyQt6.QtGui import QDrag
 
 
 class GateButton(QPushButton):

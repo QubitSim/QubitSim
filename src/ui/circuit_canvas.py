@@ -5,8 +5,8 @@ The circuit canvas is where users construct quantum circuits by dragging and
 dropping gates onto horizontal wires representing qubits.
 """
 
-from PyQt6.QtWidgets import QWidget, QLabel
-from PyQt6.QtCore import Qt, pyqtSignal, QRect, QPoint
+from PyQt6.QtWidgets import QWidget
+from PyQt6.QtCore import Qt, pyqtSignal, QRect
 from PyQt6.QtGui import QPainter, QPen, QColor, QFont, QDragEnterEvent, QDropEvent
 import numpy as np
 

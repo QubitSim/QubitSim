@@ -6,8 +6,8 @@ containing the circuit canvas, gate palette, state display, and control panel.
 """
 
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-    QSplitter, QLabel
+    QMainWindow, QWidget, QVBoxLayout, 
+    QSplitter
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction
