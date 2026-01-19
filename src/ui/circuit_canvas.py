@@ -8,7 +8,6 @@ dropping gates onto horizontal wires representing qubits.
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import Qt, pyqtSignal, QRect
 from PyQt6.QtGui import QPainter, QPen, QColor, QFont, QDragEnterEvent, QDropEvent
-import numpy as np
 
 from core.system import System
 
@@ -39,7 +38,6 @@ class CircuitCanvas(QWidget):
         
         # Quantum system
         self.system = System(self.num_qubits)
-        self.initial_state = System(self.num_qubits)
         
         # Visual settings
         self.cell_width = 80
@@ -209,7 +207,6 @@ class CircuitCanvas(QWidget):
         self.circuit = [[None for _ in range(self.num_qubits)] 
                        for _ in range(self.num_steps)]
         self.system = System(num_qubits)
-        self.initial_state = System(num_qubits)
         self.current_step = 0
         
         self.setMinimumSize(

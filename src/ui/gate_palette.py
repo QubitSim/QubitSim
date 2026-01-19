@@ -110,21 +110,11 @@ class GatePalette(QWidget):
             btn = GateButton(gate_name, display)
             scroll_layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
         
-        # Rotation gates (placeholder - will need angle input later)
+        # TODO: Rotation gates - need parameter input dialog
         scroll_layout.addWidget(self._create_category_label("Rotation Gates"))
         scroll_layout.addWidget(QLabel("(Coming soon)"))
         
-        # rotation_gates = [
-        #     ("Rx", "Rx(θ)"),
-        #     ("Ry", "Ry(θ)"),
-        #     ("Rz", "Rz(θ)"),
-        # ]
-        
-        # for gate_name, display in rotation_gates:
-        #     btn = GateButton(gate_name, display)
-        #     scroll_layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
-        
-        # Control gates (placeholder)
+        # TODO: Control gates - need multi-qubit selection
         scroll_layout.addWidget(self._create_category_label("Control"))
         scroll_layout.addWidget(QLabel("(Coming soon)"))
         
