@@ -594,3 +594,5 @@ tags
 
 ## pyenv
 .python-version
+screenshot.png
+test_ui_screenshot.py

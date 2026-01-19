@@ -1,7 +1,6 @@
 import numpy as np
 from core.operator import Operator
 from core.system import System
-from core.gates import SWAP
 
 class Gate(Operator):
     def __init__ (self, op: np.ndarray, name: str):
