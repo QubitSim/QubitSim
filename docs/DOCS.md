@@ -1,10 +1,10 @@
-## Final project definition (locked)
+# Final project definition (locked)
 
-### **Project type**
+## **Project type**
 
 Educational **quantum circuit simulator** with explicit, step-by-step state visualization.
 
-### **Target audience**
+## **Target audience**
 
 * Undergraduate **Computer Science**
 * Undergraduate **Physics**
@@ -16,20 +16,20 @@ Educational **quantum circuit simulator** with explicit, step-by-step state visu
 
 ---
 
-## Core purpose (this is the paper’s backbone)
+# Core purpose
 
 > **Enable students to explicitly observe how a quantum circuit transforms a quantum system over time, instead of treating the circuit as a black box.**
 
-This is your **unique value proposition**.
+This should be the **unique value proposition**.
 
-You are not optimizing, abstracting, or hiding complexity.
-You are **surfacing it intentionally**.
+The project does not try optimizing, abstracting, or hiding complexity.
+It is **surfacing it intentionally**.
 
 ---
 
-## Functional scope (what the simulator WILL do)
+# Functional scope (what the simulator WILL do)
 
-### 1. Circuit construction
+## 1. Circuit construction
 
 * Standard quantum circuit representation:
 
@@ -39,32 +39,34 @@ You are **surfacing it intentionally**.
 
   * Single-qubit: X, Y, Z, H, S, T
   * Parametric: RX, RY, RZ
-  * Multi-qubit: CNOT, CZ
-* Max qubits: **5**
+  * Controlled: Control and anticontrol, multi-target
+* Max qubits: **undefined**
 
-  * This is *pedagogically optimal*
+  * This should be *pedagogically optimal*
   * Enough to show entanglement without UI overload
 
-### 2. Execution model
+## 2. Execution model
 
 * **Step-by-step execution**
 * Each gate application is a discrete event
 * No batch execution unless explicitly requested
 
-### 3. State representation (critical)
+## 3. State representation
 
 The simulator maintains **one canonical internal state**, with two exposed views:
 
 * **State vector** (pure states)
 * **Density matrix** (always derivable)
 
-Important design choice (recommended):
+> This hasn't been implemented by now.
+
+Important design choice:
 
 * Internally store the **state vector**
 * Derive density matrix on demand
   This keeps the system simple and explainable.
 
-### 4. Visualization (this is the real contribution)
+## 4. Visualization
 
 At each step, the user can see:
 
@@ -79,16 +81,14 @@ At each step, the user can see:
 
   * Probability distribution per basis state
 
-What you **do not** visualize:
+What the tool **does not** visualize:
 
 * Bloch sphere per qubit (tempting, but distracts from circuits)
 * Noise models (out of scope)
 
 ---
 
-## What this project is explicitly NOT
-
-You must state this in the paper.
+# What this project is explicitly NOT
 
 * ❌ Not a quantum compiler
 * ❌ Not a performance-oriented simulator
@@ -96,15 +96,13 @@ You must state this in the paper.
 * ❌ Not intended to replace Qiskit / Cirq
 * ❌ No noise, decoherence, or hardware modeling
 
-This protects you academically.
-
 ---
 
-## Why this is a valid scientific/academic contribution
+# Why this is a valid scientific/academic contribution
 
 Because most tools optimize for **usage**, not **understanding**.
 
-Your simulator:
+This simulator:
 
 * Makes tensor products explicit
 * Shows amplitude redistribution after each gate
@@ -115,18 +113,14 @@ This directly addresses a **well-known learning barrier** in QC education.
 
 ---
 
-## Backend architecture (important for your HPC trajectory)
+# Backend architecture
 
 Even though the value is frontend-centric, the backend must be **cleanly abstracted**.
 
-### Required abstraction layer
+## Required abstraction layer
 
 ```text
-QuantumState
-  - apply_gate(gate, targets)
-  - measure(qubit)
-  - get_state_vector()
-  - get_density_matrix()
+updating later with the actual final backend structure
 ```
 
 Below that:
@@ -144,41 +138,26 @@ This is what allows:
 * C++ backend later
 * Zero redesign
 
-You mention this **explicitly** in the paper.
-
 ---
 
-## Paper positioning (now clear)
+# Paper positioning
 
-### What the paper argues
+## What the paper argues
 
 * Students struggle because quantum circuits hide state evolution
 * Explicit visualization improves conceptual understanding
 * A carefully limited simulator can expose this without overwhelming users
 
-### What the paper demonstrates
+## What the paper demonstrates
 
 * Correct quantum evolution
 * Step-wise state transformation
 * Entanglement emergence
 * Measurement collapse
 
-### What the paper does NOT claim
+## What the paper does NOT claim
 
 * Performance gains
 * Hardware realism
 * Large-scale simulation
-
----
-
-## Verdict
-
-Your proposal is:
-
-* ✔ Pedagogically strong
-* ✔ Academically defensible
-* ✔ Cleanly separable from HPC work
-* ✔ Easy to extend later without rewriting history
-
-This is the **right scope**.
 
