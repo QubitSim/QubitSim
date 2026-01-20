@@ -226,7 +226,7 @@ class CircuitCanvas(QWidget):
     def execute_to_step(self, target_step: int):
         """Execute up to a specific step."""
         target_step = max(0, min(target_step, self.num_steps - 1))
-        while self.current_step <= target_step:
+        while self.current_step <= target_step and self.current_step < self.num_steps:
             self.execute_step()
     
     def reset(self):

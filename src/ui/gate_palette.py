@@ -5,6 +5,7 @@ The gate palette displays available quantum gates that users can drag
 onto the circuit canvas. Organized in categories with tabs.
 """
 
+import math
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
     QScrollArea, QFrame, QTabWidget, QSlider, QSpinBox
@@ -266,7 +267,7 @@ class GatePalette(QWidget):
         self.theta_spinbox.blockSignals(True)
         self.theta_spinbox.setValue(value)
         self.theta_spinbox.blockSignals(False)
-        self.current_theta = value * 3.14159 / 180.0  # Convert to radians
+        self.current_theta = value * math.pi / 180.0  # Convert to radians
         self.theta_changed.emit(self.current_theta)
     
     def _on_theta_spinbox_changed(self, value: int):
@@ -274,7 +275,7 @@ class GatePalette(QWidget):
         self.theta_slider.blockSignals(True)
         self.theta_slider.setValue(value)
         self.theta_slider.blockSignals(False)
-        self.current_theta = value * 3.14159 / 180.0  # Convert to radians
+        self.current_theta = value * math.pi / 180.0  # Convert to radians
         self.theta_changed.emit(self.current_theta)
     
     def get_theta(self) -> float:
