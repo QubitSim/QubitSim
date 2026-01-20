@@ -6,6 +6,7 @@ Provides controls for circuit execution:
 - Run All button: Execute all remaining steps
 - Reset button: Reset to initial state
 - Number of qubits selector
+- Target step selector
 """
 
 from PyQt6.QtWidgets import (
@@ -22,12 +23,14 @@ class ControlPanel(QFrame):
     Signals:
         step_clicked: Emitted when step button is clicked
         run_all_clicked: Emitted when run all button is clicked
+        run_to_step_clicked: Emitted with target step when run to step is clicked
         reset_clicked: Emitted when reset button is clicked
         num_qubits_changed: Emitted when number of qubits changes
     """
     
     step_clicked = pyqtSignal()
     run_all_clicked = pyqtSignal()
+    run_to_step_clicked = pyqtSignal(int)
     reset_clicked = pyqtSignal()
     num_qubits_changed = pyqtSignal(int)
     
@@ -40,13 +43,9 @@ class ControlPanel(QFrame):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 5, 10, 5)
         
-        # Frame for better visual separation
+        # Frame for better visual separation - no hard-coded background
         self.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #F8F8F8;
-            }
-        """)
+        self.setMaximumHeight(60)  # Limit height
         
         # Number of qubits control
         qubits_label = QLabel("Qubits:")
@@ -63,6 +62,20 @@ class ControlPanel(QFrame):
         
         layout.addSpacing(20)
         
+        # Target step control
+        step_label = QLabel("Run to:")
+        step_label.setStyleSheet("font-weight: bold;")
+        layout.addWidget(step_label)
+        
+        self.target_step_spinbox = QSpinBox()
+        self.target_step_spinbox.setMinimum(0)
+        self.target_step_spinbox.setMaximum(9)
+        self.target_step_spinbox.setValue(0)
+        self.target_step_spinbox.setToolTip("Target step to run to")
+        layout.addWidget(self.target_step_spinbox)
+        
+        layout.addSpacing(20)
+        
         # Execution controls
         self.step_button = QPushButton("Step")
         self.step_button.setToolTip("Execute one step of the circuit")
@@ -72,9 +85,9 @@ class ControlPanel(QFrame):
                 background-color: #4CAF50;
                 color: white;
                 font-weight: bold;
-                padding: 8px 20px;
+                padding: 6px 16px;
                 border-radius: 4px;
-                min-width: 80px;
+                min-width: 70px;
             }
             QPushButton:hover {
                 background-color: #5CBF60;
@@ -85,6 +98,27 @@ class ControlPanel(QFrame):
         """)
         layout.addWidget(self.step_button)
         
+        self.run_to_button = QPushButton("Run To")
+        self.run_to_button.setToolTip("Execute up to target step")
+        self.run_to_button.clicked.connect(self._on_run_to_clicked)
+        self.run_to_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                font-weight: bold;
+                padding: 6px 16px;
+                border-radius: 4px;
+                min-width: 70px;
+            }
+            QPushButton:hover {
+                background-color: #31A6FF;
+            }
+            QPushButton:pressed {
+                background-color: #1186E3;
+            }
+        """)
+        layout.addWidget(self.run_to_button)
+        
         self.run_all_button = QPushButton("Run All")
         self.run_all_button.setToolTip("Execute all remaining steps")
         self.run_all_button.clicked.connect(self.run_all_clicked.emit)
@@ -93,9 +127,9 @@ class ControlPanel(QFrame):
                 background-color: #2196F3;
                 color: white;
                 font-weight: bold;
-                padding: 8px 20px;
+                padding: 6px 16px;
                 border-radius: 4px;
-                min-width: 80px;
+                min-width: 70px;
             }
             QPushButton:hover {
                 background-color: #31A6FF;
@@ -114,9 +148,9 @@ class ControlPanel(QFrame):
                 background-color: #FF9800;
                 color: white;
                 font-weight: bold;
-                padding: 8px 20px;
+                padding: 6px 16px;
                 border-radius: 4px;
-                min-width: 80px;
+                min-width: 70px;
             }
             QPushButton:hover {
                 background-color: #FFA820;
@@ -131,15 +165,17 @@ class ControlPanel(QFrame):
         
         # Status indicator (for future use)
         self.status_label = QLabel("Ready")
-        self.status_label.setStyleSheet("""
-            color: #666;
-            font-style: italic;
-        """)
+        self.status_label.setStyleSheet("font-style: italic;")
         layout.addWidget(self.status_label)
     
     def _on_qubits_changed(self, value: int):
         """Handle change in number of qubits."""
         self.num_qubits_changed.emit(value)
+    
+    def _on_run_to_clicked(self):
+        """Handle run to step button click."""
+        target_step = self.target_step_spinbox.value()
+        self.run_to_step_clicked.emit(target_step)
     
     def set_status(self, status: str):
         """Update the status label."""

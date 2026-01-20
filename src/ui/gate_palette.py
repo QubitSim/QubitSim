@@ -2,15 +2,15 @@
 Gate Palette Widget
 
 The gate palette displays available quantum gates that users can drag
-onto the circuit canvas.
+onto the circuit canvas. Organized in categories with tabs.
 """
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QPushButton, 
-    QScrollArea, QFrame
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
+    QScrollArea, QFrame, QTabWidget, QSlider, QSpinBox
 )
-from PyQt6.QtCore import Qt, QMimeData
-from PyQt6.QtGui import QDrag
+from PyQt6.QtCore import Qt, QMimeData, pyqtSignal
+from PyQt6.QtGui import QDrag, QPainter, QPen, QColor
 
 
 class GateButton(QPushButton):
@@ -52,19 +52,67 @@ class GateButton(QPushButton):
             drag.exec(Qt.DropAction.CopyAction)
 
 
+class ControlButton(QPushButton):
+    """
+    A button representing control or anticontrol markers.
+    These are shown with circle symbols (● for control, ○ for anticontrol).
+    """
+    
+    def __init__(self, control_type: str, parent=None):
+        super().__init__(parent)
+        self.control_type = control_type  # "C" or "A"
+        
+        if control_type == "C":
+            self.setText("●")  # Filled circle for control
+            self.setToolTip("Control (filled circle)")
+        else:
+            self.setText("○")  # Open circle for anticontrol
+            self.setToolTip("Anti-control (open circle)")
+        
+        self.setFixedSize(60, 50)
+        self.setStyleSheet("""
+            QPushButton {
+                background-color: #FFD0D0;
+                border: 2px solid #C05050;
+                border-radius: 5px;
+                font-weight: bold;
+                font-size: 24px;
+            }
+            QPushButton:hover {
+                background-color: #FFE0E0;
+                border: 2px solid #D06060;
+            }
+            QPushButton:pressed {
+                background-color: #FFB0B0;
+            }
+        """)
+    
+    def mouseMoveEvent(self, event):
+        """Start drag operation."""
+        if event.buttons() == Qt.MouseButton.LeftButton:
+            drag = QDrag(self)
+            mime_data = QMimeData()
+            mime_data.setText(self.control_type)
+            drag.setMimeData(mime_data)
+            drag.exec(Qt.DropAction.CopyAction)
+
+
 class GatePalette(QWidget):
     """
     Palette of draggable quantum gates.
     
-    Displays all available gates organized by category:
+    Displays all available gates organized by category with tabs:
     - Single-qubit gates (H, X, Y, Z, S, T)
-    - Rotation gates (Rx, Ry, Rz)
-    - Multi-qubit gates (CNOT, SWAP, etc.) - for future implementation
+    - Rotation gates (Rx, Ry, Rz) with theta slider
+    - Control gates (control and anticontrol markers)
     """
+    
+    theta_changed = pyqtSignal(float)  # Emitted when theta angle changes
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMaximumWidth(150)
+        self.setMaximumWidth(200)
+        self.current_theta = 0.0
         self._init_ui()
     
     def _init_ui(self):
@@ -79,23 +127,50 @@ class GatePalette(QWidget):
             font-size: 14px;
             font-weight: bold;
             padding: 5px;
-            background-color: #F0F0F0;
             border-radius: 3px;
         """)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
         
-        # Scroll area for gates
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # Tab widget for categories
+        self.tabs = QTabWidget()
+        self.tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #ccc;
+                border-radius: 3px;
+            }
+            QTabBar::tab {
+                padding: 5px 10px;
+                margin: 2px;
+            }
+            QTabBar::tab:selected {
+                font-weight: bold;
+            }
+        """)
         
-        scroll_widget = QWidget()
-        scroll_layout = QVBoxLayout(scroll_widget)
-        scroll_layout.setSpacing(15)
+        # Create tabs for each category
+        self.tabs.addTab(self._create_single_qubit_tab(), "Single")
+        self.tabs.addTab(self._create_rotation_tab(), "Rotation")
+        self.tabs.addTab(self._create_control_tab(), "Control")
         
-        # Standard single-qubit gates
-        scroll_layout.addWidget(self._create_category_label("Single-Qubit Gates"))
+        layout.addWidget(self.tabs)
+        
+        # Instructions
+        instructions = QLabel("Drag gates onto\nthe circuit canvas")
+        instructions.setStyleSheet("""
+            font-size: 10px;
+            padding: 5px;
+        """)
+        instructions.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        instructions.setWordWrap(True)
+        layout.addWidget(instructions)
+    
+    def _create_single_qubit_tab(self) -> QWidget:
+        """Create tab for single-qubit gates."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
         
         standard_gates = [
             ("H", "H"),
@@ -108,42 +183,100 @@ class GatePalette(QWidget):
         
         for gate_name, display in standard_gates:
             btn = GateButton(gate_name, display)
-            scroll_layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
         
-        # TODO: Rotation gates - need parameter input dialog
-        scroll_layout.addWidget(self._create_category_label("Rotation Gates"))
-        scroll_layout.addWidget(QLabel("(Coming soon)"))
-        
-        # TODO: Control gates - need multi-qubit selection
-        scroll_layout.addWidget(self._create_category_label("Control"))
-        scroll_layout.addWidget(QLabel("(Coming soon)"))
-        
-        scroll_layout.addStretch()
-        
-        scroll.setWidget(scroll_widget)
-        layout.addWidget(scroll)
-        
-        # Instructions
-        instructions = QLabel("Drag gates onto\nthe circuit canvas")
-        instructions.setStyleSheet("""
-            font-size: 10px;
-            color: #666;
-            padding: 5px;
-        """)
-        instructions.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        instructions.setWordWrap(True)
-        layout.addWidget(instructions)
+        layout.addStretch()
+        return widget
     
-    def _create_category_label(self, text: str) -> QLabel:
-        """Create a category separator label."""
-        label = QLabel(text)
-        label.setStyleSheet("""
-            font-size: 11px;
-            font-weight: bold;
-            color: #555;
-            padding: 3px;
-            background-color: #E8E8E8;
-            border-radius: 2px;
-        """)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        return label
+    def _create_rotation_tab(self) -> QWidget:
+        """Create tab for rotation gates with theta control."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Theta control section
+        theta_label = QLabel("Angle (θ):")
+        theta_label.setStyleSheet("font-weight: bold;")
+        layout.addWidget(theta_label)
+        
+        # Theta value display and input
+        theta_layout = QHBoxLayout()
+        self.theta_spinbox = QSpinBox()
+        self.theta_spinbox.setMinimum(0)
+        self.theta_spinbox.setMaximum(360)
+        self.theta_spinbox.setValue(0)
+        self.theta_spinbox.setSuffix("°")
+        self.theta_spinbox.valueChanged.connect(self._on_theta_spinbox_changed)
+        theta_layout.addWidget(self.theta_spinbox)
+        layout.addLayout(theta_layout)
+        
+        # Theta slider
+        self.theta_slider = QSlider(Qt.Orientation.Horizontal)
+        self.theta_slider.setMinimum(0)
+        self.theta_slider.setMaximum(360)
+        self.theta_slider.setValue(0)
+        self.theta_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.theta_slider.setTickInterval(45)
+        self.theta_slider.valueChanged.connect(self._on_theta_slider_changed)
+        layout.addWidget(self.theta_slider)
+        
+        layout.addSpacing(10)
+        
+        # Rotation gates
+        rotation_gates = [
+            ("Rx", "Rx(θ)"),
+            ("Ry", "Ry(θ)"),
+            ("Rz", "Rz(θ)"),
+        ]
+        
+        for gate_name, display in rotation_gates:
+            btn = GateButton(gate_name, display)
+            layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        layout.addStretch()
+        return widget
+    
+    def _create_control_tab(self) -> QWidget:
+        """Create tab for control and anticontrol markers."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Info label
+        info = QLabel("Control markers:\n● Control\n○ Anti-control")
+        info.setWordWrap(True)
+        info.setStyleSheet("font-size: 10px; padding: 5px;")
+        layout.addWidget(info)
+        
+        # Control button
+        control_btn = ControlButton("C")
+        layout.addWidget(control_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        # Anticontrol button
+        anticontrol_btn = ControlButton("A")
+        layout.addWidget(anticontrol_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        layout.addStretch()
+        return widget
+    
+    def _on_theta_slider_changed(self, value: int):
+        """Handle theta slider change."""
+        self.theta_spinbox.blockSignals(True)
+        self.theta_spinbox.setValue(value)
+        self.theta_spinbox.blockSignals(False)
+        self.current_theta = value * 3.14159 / 180.0  # Convert to radians
+        self.theta_changed.emit(self.current_theta)
+    
+    def _on_theta_spinbox_changed(self, value: int):
+        """Handle theta spinbox change."""
+        self.theta_slider.blockSignals(True)
+        self.theta_slider.setValue(value)
+        self.theta_slider.blockSignals(False)
+        self.current_theta = value * 3.14159 / 180.0  # Convert to radians
+        self.theta_changed.emit(self.current_theta)
+    
+    def get_theta(self) -> float:
+        """Get current theta value in radians."""
+        return self.current_theta

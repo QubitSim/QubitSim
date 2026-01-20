@@ -69,29 +69,23 @@ class CircuitCanvas(QWidget):
         self._draw_current_step_indicator(painter)
         
     def _draw_grid(self, painter):
-        """Draw the grid lines."""
-        pen = QPen(QColor(230, 230, 230))
+        """Draw the grid lines (vertical only for time steps)."""
+        pen = QPen(QColor(220, 220, 220))
         pen.setWidth(1)
+        pen.setStyle(Qt.PenStyle.DashLine)
         painter.setPen(pen)
         
-        # Vertical grid lines
+        # Vertical grid lines (time steps)
         for step in range(self.num_steps + 1):
             x = self.left_margin + step * self.cell_width
             y1 = self.top_margin
             y2 = self.top_margin + self.num_qubits * self.cell_height
             painter.drawLine(x, y1, x, y2)
-        
-        # Horizontal grid lines
-        for qubit in range(self.num_qubits + 1):
-            y = self.top_margin + qubit * self.cell_height
-            x1 = self.left_margin
-            x2 = self.left_margin + self.num_steps * self.cell_width
-            painter.drawLine(x1, y, x2, y)
     
     def _draw_wires(self, painter):
-        """Draw qubit wires."""
-        pen = QPen(QColor(100, 100, 100))
-        pen.setWidth(2)
+        """Draw qubit wires - thick solid lines to clearly represent qubits."""
+        pen = QPen(QColor(60, 60, 60))
+        pen.setWidth(3)
         painter.setPen(pen)
         
         for qubit in range(self.num_qubits):
@@ -227,6 +221,12 @@ class CircuitCanvas(QWidget):
     def execute_all(self):
         """Execute all remaining steps."""
         while self.current_step < self.num_steps:
+            self.execute_step()
+    
+    def execute_to_step(self, target_step: int):
+        """Execute up to a specific step."""
+        target_step = max(0, min(target_step, self.num_steps - 1))
+        while self.current_step <= target_step:
             self.execute_step()
     
     def reset(self):

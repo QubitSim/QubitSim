@@ -81,6 +81,7 @@ class MainWindow(QMainWindow):
         # Control panel signals
         self.control_panel.step_clicked.connect(self.on_step)
         self.control_panel.run_all_clicked.connect(self.on_run_all)
+        self.control_panel.run_to_step_clicked.connect(self.on_run_to_step)
         self.control_panel.reset_clicked.connect(self.on_reset)
         self.control_panel.num_qubits_changed.connect(self.on_num_qubits_changed)
         
@@ -139,6 +140,11 @@ class MainWindow(QMainWindow):
     def on_run_all(self):
         """Execute all remaining steps of the circuit."""
         self.circuit_canvas.execute_all()
+        self.state_display.update_state(self.circuit_canvas.get_current_state())
+    
+    def on_run_to_step(self, target_step: int):
+        """Execute up to a specific step."""
+        self.circuit_canvas.execute_to_step(target_step)
         self.state_display.update_state(self.circuit_canvas.get_current_state())
     
     def on_reset(self):
