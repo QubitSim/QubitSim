@@ -1,0 +1,135 @@
+from PyQt6.QtCore import QObject, pyqtSignal
+from qcircuit.objects import GateOp
+
+
+class AppState(QObject):
+    """
+    Global application state.
+
+    Single source of truth for:
+    - Circuit structure
+    - Execution state
+    - UI selection state
+    - Quantum system outputs
+    """
+
+    # Structural changes
+    circuit_changed = pyqtSignal()
+    state_changed = pyqtSignal()
+    system_changed = pyqtSignal()
+    selection_changed = pyqtSignal()
+
+    def __init__(self, num_qubits: int, num_steps: int):
+        super().__init__()
+
+        self.num_qubits = num_qubits
+        self.num_steps = num_steps
+
+        # steps[step][qubit] -> GateOp | None
+        self.steps: list[list[GateOp | None]] = [
+            [None for _ in range(num_qubits)]
+            for _ in range(num_steps)
+        ]
+
+        self.current_step = 0
+
+        # UI selection state
+        # selected_gate may also be "C" or "A" (control markers)
+        self.selected_gate: str | None = None
+        self.selected_theta: float = 0.0
+
+        # Quantum system outputs (produced elsewhere)
+        self.statevector = None
+        self.measurement_probs = None
+        self.qubit_views = None
+
+    def add_gate(self, step: int, gate_op: GateOp):
+        if not (0 <= step < self.num_steps):
+            raise IndexError("Invalid step")
+
+        for qubit in gate_op.targets:
+            if not (0 <= qubit < self.num_qubits):
+                raise IndexError("Invalid qubit")
+
+            self.steps[step][qubit] = gate_op
+
+        self.circuit_changed.emit()
+
+    def remove_gate(self, step: int, qubit: int):
+        if not (0 <= step < self.num_steps):
+            raise IndexError("Invalid step")
+        if not (0 <= qubit < self.num_qubits):
+            raise IndexError("Invalid qubit")
+
+        if self.steps[step][qubit] is not None:
+            self.steps[step][qubit] = None
+            self.circuit_changed.emit()
+
+    def clear_circuit(self):
+        self.steps = [
+            [None for _ in range(self.num_qubits)]
+            for _ in range(self.num_steps)
+        ]
+        self.current_step = 0
+        self.circuit_changed.emit()
+        self.state_changed.emit()
+
+    def set_selected_gate(self, gate: str | None):
+        self.selected_gate = gate
+        if gate not in {"RX", "RY", "RZ"}:
+            self.selected_theta = 0.0
+        self.selection_changed.emit()
+
+    def set_selected_theta(self, theta: float):
+        self.selected_theta = theta
+        self.selection_changed.emit()
+
+    def step(self):
+        if self.current_step < self.num_steps:
+            self.current_step += 1
+            self.state_changed.emit()
+
+    def run_all(self):
+        self.current_step = self.num_steps
+        self.state_changed.emit()
+
+    def run_to(self, target_step: int):
+        target_step = max(0, min(target_step, self.num_steps))
+        self.current_step = target_step
+        self.state_changed.emit()
+
+    def reset(self):
+        self.current_step = 0
+        self.state_changed.emit()
+
+    def set_num_qubits(self, num_qubits: int):
+        self.num_qubits = num_qubits
+        self.steps = [
+            [None for _ in range(num_qubits)]
+            for _ in range(self.num_steps)
+        ]
+        self.current_step = 0
+        self.circuit_changed.emit()
+        self.state_changed.emit()
+
+    def set_num_steps(self, num_steps: int):
+        self.num_steps = num_steps
+        self.steps = [
+            [None for _ in range(self.num_qubits)]
+            for _ in range(num_steps)
+        ]
+        self.current_step = 0
+        self.circuit_changed.emit()
+        self.state_changed.emit()
+
+    def set_statevector(self, statevector):
+        self.statevector = statevector
+        self.system_changed.emit()
+
+    def set_measurement_probs(self, probs):
+        self.measurement_probs = probs
+        self.system_changed.emit()
+
+    def set_qubit_views(self, views):
+        self.qubit_views = views
+        self.system_changed.emit()

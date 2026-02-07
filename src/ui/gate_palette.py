@@ -7,21 +7,22 @@ onto the circuit canvas. Organized in categories with tabs.
 
 import math
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
-    QScrollArea, QFrame, QTabWidget, QSlider, QSpinBox
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTabWidget, QSlider, QSpinBox
 )
 from PyQt6.QtCore import Qt, QMimeData, pyqtSignal
 from PyQt6.QtGui import QDrag, QPainter, QPen, QColor
 
+from ui.app_state import AppState
 
 class GateButton(QPushButton):
     """
     A draggable button representing a quantum gate.
     """
     
-    def __init__(self, gate_name: str, gate_display: str = None, parent=None):
+    def __init__(self, gate_name: str, app_state: AppState, gate_display: str = None, parent=None):
         super().__init__(parent)
         self.gate_name = gate_name
+        self.app_state = app_state
         self.gate_display = gate_display or gate_name
         
         self.setText(self.gate_display)
@@ -44,13 +45,24 @@ class GateButton(QPushButton):
         """)
     
     def mouseMoveEvent(self, event):
-        """Start drag operation."""
         if event.buttons() == Qt.MouseButton.LeftButton:
             drag = QDrag(self)
             mime_data = QMimeData()
             mime_data.setText(self.gate_name)
+            mime_data.setData(
+                "application/x-gate",
+                f"{self.gate_name}".encode()
+            )
+
             drag.setMimeData(mime_data)
             drag.exec(Qt.DropAction.CopyAction)
+
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.app_state.set_selected_gate(self.gate_name)
+        super().mousePressEvent(event)
+
 
 
 class ControlButton(QPushButton):
@@ -59,9 +71,10 @@ class ControlButton(QPushButton):
     These are shown with circle symbols (● for control, ○ for anticontrol).
     """
     
-    def __init__(self, control_type: str, parent=None):
+    def __init__(self, control_type: str, app_state: AppState, parent=None):
         super().__init__(parent)
         self.control_type = control_type  # "C" or "A"
+        self.app_state = app_state
         
         if control_type == "C":
             self.setText("●")  # Filled circle for control
@@ -97,6 +110,12 @@ class ControlButton(QPushButton):
             drag.setMimeData(mime_data)
             drag.exec(Qt.DropAction.CopyAction)
 
+    def mousePressEvent(self, e):
+        """Select control type on click."""
+        if e.button() == Qt.MouseButton.LeftButton:
+            self.app_state.set_selected_gate(self.control_type)
+        super().mousePressEvent(e)
+
 
 class GatePalette(QWidget):
     """
@@ -107,13 +126,12 @@ class GatePalette(QWidget):
     - Rotation gates (Rx, Ry, Rz) with theta slider
     - Control gates (control and anticontrol markers)
     """
-    
-    theta_changed = pyqtSignal(float)  # Emitted when theta angle changes
-    
-    def __init__(self, parent=None):
+        
+    def __init__(self, app_state: AppState, parent=None, ):
         super().__init__(parent)
         self.setMaximumWidth(200)
         self.current_theta = 0.0
+        self.app_state = app_state
         self._init_ui()
     
     def _init_ui(self):
@@ -183,7 +201,7 @@ class GatePalette(QWidget):
         ]
         
         for gate_name, display in standard_gates:
-            btn = GateButton(gate_name, display)
+            btn = GateButton(gate_name, self.app_state, display)
             layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
         
         layout.addStretch()
@@ -226,13 +244,13 @@ class GatePalette(QWidget):
         
         # Rotation gates
         rotation_gates = [
-            ("Rx", "Rx(θ)"),
-            ("Ry", "Ry(θ)"),
-            ("Rz", "Rz(θ)"),
+            ("RX", "Rx(θ)"),
+            ("RY", "Ry(θ)"),
+            ("RZ", "Rz(θ)"),
         ]
         
         for gate_name, display in rotation_gates:
-            btn = GateButton(gate_name, display)
+            btn = GateButton(gate_name, self.app_state, display)
             layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
         
         layout.addStretch()
@@ -252,32 +270,30 @@ class GatePalette(QWidget):
         layout.addWidget(info)
         
         # Control button
-        control_btn = ControlButton("C")
+        control_btn = ControlButton("C", self.app_state)
         layout.addWidget(control_btn, alignment=Qt.AlignmentFlag.AlignCenter)
         
         # Anticontrol button
-        anticontrol_btn = ControlButton("A")
+        anticontrol_btn = ControlButton("A", self.app_state)
         layout.addWidget(anticontrol_btn, alignment=Qt.AlignmentFlag.AlignCenter)
         
         layout.addStretch()
         return widget
     
     def _on_theta_slider_changed(self, value: int):
-        """Handle theta slider change."""
         self.theta_spinbox.blockSignals(True)
         self.theta_spinbox.setValue(value)
         self.theta_spinbox.blockSignals(False)
-        self.current_theta = value * math.pi / 180.0  # Convert to radians
-        self.theta_changed.emit(self.current_theta)
-    
+
+        theta = value * math.pi / 180.0
+        self.app_state.set_selected_theta(theta)
+
+
     def _on_theta_spinbox_changed(self, value: int):
-        """Handle theta spinbox change."""
         self.theta_slider.blockSignals(True)
         self.theta_slider.setValue(value)
         self.theta_slider.blockSignals(False)
-        self.current_theta = value * math.pi / 180.0  # Convert to radians
-        self.theta_changed.emit(self.current_theta)
-    
-    def get_theta(self) -> float:
-        """Get current theta value in radians."""
-        return self.current_theta
+
+        theta = value * math.pi / 180.0
+        self.app_state.set_selected_theta(theta)
+
