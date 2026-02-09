@@ -37,21 +37,30 @@ So we have a register of n qubits (System), with an initial state |ψ⟩.
 Since I'm not carying about performance right now, I can just apply each gate in the column to the system one by one.
 
 """
+from qiskit import QuantumCircuit
 from qcircuit.objects import GateOp, GATE_DISPATCH
 
 class CircuitInterpreter:
-    def __init__(self, steps: list[list[GateOp]], num_qubits: int) -> None:
-        self.steps = steps
+    def __init__(self, num_qubits: int):
+        self.num_qubits = num_qubits
+        self.qc = QuantumCircuit(num_qubits)
 
-    def apply_step(self, step: int):
-        for op in self.steps[step]:
+    def build_circuit(self, steps: list[list[GateOp | None]]) -> QuantumCircuit:
+        self.qc = QuantumCircuit(self.num_qubits)
+        for step in steps:
+            self._apply_step(step)
+        return self.qc
+
+    def build_partial_circuit(self, steps: list[list[GateOp | None]], up_to_step: int) -> QuantumCircuit:
+        self.qc = QuantumCircuit(self.num_qubits)
+        for step in steps[:up_to_step]:
+            self._apply_step(step)
+        return self.qc
+
+    def _apply_step(self, step: list[GateOp | None]):
+        for op in step:
+            if op is None:
+                continue
             if op.name not in GATE_DISPATCH:
                 raise ValueError(f"Unknown gate {op.name}")
             GATE_DISPATCH[op.name](self.qc, op)
-
-    def apply_all(self):
-        for step in range(len(self.steps)):
-            self.apply_step(step)
-
-    def get_circuit(self):
-        return self.qc
