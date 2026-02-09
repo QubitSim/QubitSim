@@ -1,5 +1,6 @@
 from PyQt6.QtCore import QObject, pyqtSignal
 from qcircuit.objects import GateOp
+from qcircuit.backend import QiskitBackend
 
 
 class AppState(QObject):
@@ -42,6 +43,11 @@ class AppState(QObject):
         self.statevector = None
         self.measurement_probs = None
         self.qubit_views = None
+        self.system = None
+        
+        # Backend for quantum simulation
+        self.backend = QiskitBackend(num_qubits)
+        self._initialize_system()
 
     def add_gate(self, step: int, gate_op: GateOp):
         if not (0 <= step < self.num_steps):
@@ -87,19 +93,23 @@ class AppState(QObject):
     def step(self):
         if self.current_step < self.num_steps:
             self.current_step += 1
+            self.execute_circuit_to_current_step()
             self.state_changed.emit()
 
     def run_all(self):
         self.current_step = self.num_steps
+        self.execute_circuit_to_current_step()
         self.state_changed.emit()
 
     def run_to(self, target_step: int):
         target_step = max(0, min(target_step, self.num_steps))
         self.current_step = target_step
+        self.execute_circuit_to_current_step()
         self.state_changed.emit()
 
     def reset(self):
         self.current_step = 0
+        self._initialize_system()
         self.state_changed.emit()
 
     def set_num_qubits(self, num_qubits: int):
@@ -109,6 +119,8 @@ class AppState(QObject):
             for _ in range(self.num_steps)
         ]
         self.current_step = 0
+        self.backend = QiskitBackend(num_qubits)
+        self._initialize_system()
         self.circuit_changed.emit()
         self.state_changed.emit()
 
@@ -132,4 +144,27 @@ class AppState(QObject):
 
     def set_qubit_views(self, views):
         self.qubit_views = views
+        self.system_changed.emit()
+    
+    def execute_circuit_to_current_step(self):
+        """Execute circuit up to current_step and update quantum state"""
+        try:
+            if self.current_step == 0:
+                # Reset to initial state
+                self._initialize_system()
+            else:
+                result = self.backend.execute(self.steps, self.current_step)
+                self.system = result['system']
+                self.set_statevector(result['statevector'])
+                self.set_measurement_probs(result['probabilities'])
+        except Exception as e:
+            print(f"Error executing circuit: {e}")
+            self._initialize_system()
+    
+    def _initialize_system(self):
+        """Initialize system to |0...0> state"""
+        from core.system import System
+        self.system = System(self.num_qubits)
+        self.statevector = None
+        self.measurement_probs = None
         self.system_changed.emit()
