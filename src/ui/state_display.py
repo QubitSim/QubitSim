@@ -36,6 +36,7 @@ class StateDisplay(QWidget):
 
         # React to global state changes
         self.app_state.state_changed.connect(self.refresh)
+        self.app_state.system_changed.connect(self.refresh)
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
