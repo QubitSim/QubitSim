@@ -61,6 +61,28 @@ class CircuitInterpreter:
         for op in step:
             if op is None:
                 continue
+            
+            # Skip control markers themselves - they're attached to gates
+            if op.name in {"C", "AC"}:
+                continue
+            
             if op.name not in GATE_DISPATCH:
                 raise ValueError(f"Unknown gate {op.name}")
-            GATE_DISPATCH[op.name](self.qc, op)
+            
+            # Handle controlled gates
+            if op.controls:
+                GATE_DISPATCH["C"](self.qc, op)
+            # Handle anticontrolled gates
+            elif op.anti_controls:
+                # Create a modified op with controls instead of anti_controls
+                # The apply_anticontrolled will flip the control bit
+                modified_op = GateOp(
+                    name=op.name,
+                    targets=op.targets,
+                    controls=op.anti_controls,
+                    params=op.params
+                )
+                GATE_DISPATCH["AC"](self.qc, modified_op)
+            else:
+                # Regular gate
+                GATE_DISPATCH[op.name](self.qc, op)
