@@ -13,6 +13,7 @@ from PyQt6.QtCore import Qt, QMimeData, pyqtSignal
 from PyQt6.QtGui import QDrag, QPainter, QPen, QColor
 
 from ui.app_state import AppState
+from ui.themes import Theme, LIGHT_THEME, get_theme, get_gate_button_stylesheet, get_control_button_stylesheet, get_palette_stylesheet
 
 class GateButton(QPushButton):
     """
@@ -24,25 +25,20 @@ class GateButton(QPushButton):
         self.gate_name = gate_name
         self.app_state = app_state
         self.gate_display = gate_display or gate_name
+        self.current_theme = LIGHT_THEME
         
         self.setText(self.gate_display)
         self.setFixedSize(60, 50)
-        self.setStyleSheet("""
-            QPushButton {
-                background-color: #D0E0FF;
-                border: 2px solid #5080C0;
-                border-radius: 5px;
-                font-weight: bold;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #E0F0FF;
-                border: 2px solid #6090D0;
-            }
-            QPushButton:pressed {
-                background-color: #B0D0FF;
-            }
-        """)
+        self._apply_stylesheet()
+    
+    def _apply_stylesheet(self):
+        """Apply current theme stylesheet."""
+        self.setStyleSheet(get_gate_button_stylesheet(self.current_theme))
+    
+    def set_theme(self, theme: Theme):
+        """Update button theme."""
+        self.current_theme = theme
+        self._apply_stylesheet()
     
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.MouseButton.LeftButton:
@@ -73,8 +69,9 @@ class ControlButton(QPushButton):
     
     def __init__(self, control_type: str, app_state: AppState, parent=None):
         super().__init__(parent)
-        self.control_type = control_type  # "C" or "A"
+        self.control_type = control_type  # "C" or "AC"
         self.app_state = app_state
+        self.current_theme = LIGHT_THEME
         
         if control_type == "C":
             self.setText("●")  # Filled circle for control
@@ -84,22 +81,16 @@ class ControlButton(QPushButton):
             self.setToolTip("Anti-control (open circle)")
         
         self.setFixedSize(60, 50)
-        self.setStyleSheet("""
-            QPushButton {
-                background-color: #FFD0D0;
-                border: 2px solid #C05050;
-                border-radius: 5px;
-                font-weight: bold;
-                font-size: 24px;
-            }
-            QPushButton:hover {
-                background-color: #FFE0E0;
-                border: 2px solid #D06060;
-            }
-            QPushButton:pressed {
-                background-color: #FFB0B0;
-            }
-        """)
+        self._apply_stylesheet()
+    
+    def _apply_stylesheet(self):
+        """Apply current theme stylesheet."""
+        self.setStyleSheet(get_control_button_stylesheet(self.current_theme))
+    
+    def set_theme(self, theme: Theme):
+        """Update button theme."""
+        self.current_theme = theme
+        self._apply_stylesheet()
     
     def mouseMoveEvent(self, event):
         """Start drag operation."""
@@ -132,6 +123,13 @@ class GatePalette(QWidget):
         self.setMaximumWidth(200)
         self.current_theta = 0.0
         self.app_state = app_state
+        self.current_theme = LIGHT_THEME
+        
+        # Keep track of all buttons for theme updates
+        self.all_buttons = []
+        self.title_label = None
+        self.instructions_label = None
+        
         self._init_ui()
     
     def _init_ui(self):
@@ -141,31 +139,11 @@ class GatePalette(QWidget):
         layout.setSpacing(10)
         
         # Title
-        title = QLabel("Gate Palette")
-        title.setStyleSheet("""
-            font-size: 14px;
-            font-weight: bold;
-            padding: 5px;
-            border-radius: 3px;
-        """)
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title)
+        self.title_label = QLabel("Gate Palette")
+        layout.addWidget(self.title_label)
         
         # Tab widget for categories
         self.tabs = QTabWidget()
-        self.tabs.setStyleSheet("""
-            QTabWidget::pane {
-                border: 1px solid #ccc;
-                border-radius: 3px;
-            }
-            QTabBar::tab {
-                padding: 5px 10px;
-                margin: 2px;
-            }
-            QTabBar::tab:selected {
-                font-weight: bold;
-            }
-        """)
         
         # Create tabs for each category
         self.tabs.addTab(self._create_single_qubit_tab(), "Single")
@@ -175,14 +153,13 @@ class GatePalette(QWidget):
         layout.addWidget(self.tabs)
         
         # Instructions
-        instructions = QLabel("Drag gates onto\nthe circuit canvas")
-        instructions.setStyleSheet("""
-            font-size: 10px;
-            padding: 5px;
-        """)
-        instructions.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        instructions.setWordWrap(True)
-        layout.addWidget(instructions)
+        self.instructions_label = QLabel("Drag gates onto\nthe circuit canvas")
+        self.instructions_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.instructions_label.setWordWrap(True)
+        layout.addWidget(self.instructions_label)
+        
+        # Apply initial theme
+        self.set_theme(self.current_theme)
     
     def _create_single_qubit_tab(self) -> QWidget:
         """Create tab for single-qubit gates."""
@@ -202,6 +179,7 @@ class GatePalette(QWidget):
         
         for gate_name, display in standard_gates:
             btn = GateButton(gate_name, self.app_state, display)
+            self.all_buttons.append(btn)
             layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
         
         layout.addStretch()
@@ -216,7 +194,6 @@ class GatePalette(QWidget):
         
         # Theta control section
         theta_label = QLabel("Angle (θ):")
-        theta_label.setStyleSheet("font-weight: bold;")
         layout.addWidget(theta_label)
         
         # Theta value display and input
@@ -251,6 +228,7 @@ class GatePalette(QWidget):
         
         for gate_name, display in rotation_gates:
             btn = GateButton(gate_name, self.app_state, display)
+            self.all_buttons.append(btn)
             layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
         
         layout.addStretch()
@@ -266,19 +244,49 @@ class GatePalette(QWidget):
         # Info label
         info = QLabel("Control markers:\n● Control\n○ Anti-control")
         info.setWordWrap(True)
-        info.setStyleSheet("font-size: 10px; padding: 5px;")
         layout.addWidget(info)
         
         # Control button
-        control_btn = ControlButton("C", self.app_state)
-        layout.addWidget(control_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.control_btn = ControlButton("C", self.app_state)
+        self.all_buttons.append(self.control_btn)
+        layout.addWidget(self.control_btn, alignment=Qt.AlignmentFlag.AlignCenter)
         
         # Anticontrol button
-        anticontrol_btn = ControlButton("A", self.app_state)
-        layout.addWidget(anticontrol_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.anticontrol_btn = ControlButton("AC", self.app_state)
+        self.all_buttons.append(self.anticontrol_btn)
+        layout.addWidget(self.anticontrol_btn, alignment=Qt.AlignmentFlag.AlignCenter)
         
         layout.addStretch()
         return widget
+    
+    def set_theme(self, theme: Theme):
+        """Update widget theme."""
+        self.current_theme = theme
+        
+        # Update all buttons
+        for btn in self.all_buttons:
+            btn.set_theme(theme)
+        
+        # Update labels
+        if self.title_label:
+            self.title_label.setStyleSheet(f"""
+                font-size: 14px;
+                font-weight: bold;
+                padding: 5px;
+                border-radius: 3px;
+                color: {theme.text_primary};
+            """)
+        
+        if self.instructions_label:
+            self.instructions_label.setStyleSheet(f"""
+                font-size: 10px;
+                padding: 5px;
+                color: {theme.text_primary};
+            """)
+        
+        # Update tab widget and spinbox/slider
+        self.tabs.setStyleSheet(get_palette_stylesheet(theme))
+        self.setStyleSheet(f"QWidget {{ background-color: {theme.panel_bg}; }}")
     
     def _on_theta_slider_changed(self, value: int):
         self.theta_spinbox.blockSignals(True)
@@ -296,4 +304,3 @@ class GatePalette(QWidget):
 
         theta = value * math.pi / 180.0
         self.app_state.set_selected_theta(theta)
-

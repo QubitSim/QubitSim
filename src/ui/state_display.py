@@ -14,6 +14,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 from ui.app_state import AppState
+from ui.themes import Theme, LIGHT_THEME, get_state_display_stylesheet
 
 
 EPS = 1e-10
@@ -31,6 +32,7 @@ class StateDisplay(QWidget):
 
         self.app_state = app_state
         self.setMinimumWidth(300)
+        self.current_theme = LIGHT_THEME
 
         self._init_ui()
 
@@ -42,16 +44,9 @@ class StateDisplay(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
 
-        title = QLabel("Quantum State")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("""
-            font-size: 14px;
-            font-weight: bold;
-            padding: 5px;
-            background-color: #F0F0F0;
-            border-radius: 3px;
-        """)
-        layout.addWidget(title)
+        self.title = QLabel("Quantum State")
+        self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.title)
 
         self.tabs = QTabWidget()
 
@@ -70,6 +65,26 @@ class StateDisplay(QWidget):
         layout.addWidget(self.tabs)
 
         self.clear()
+        
+        # Apply initial theme
+        self.set_theme(self.current_theme)
+
+    def set_theme(self, theme: Theme):
+        """Update widget theme."""
+        self.current_theme = theme
+        
+        # Update title styling
+        self.title.setStyleSheet(f"""
+            font-size: 14px;
+            font-weight: bold;
+            padding: 5px;
+            background-color: {theme.state_display_title_bg};
+            border-radius: 3px;
+            color: {theme.text_primary};
+        """)
+        
+        # Update overall widget and tab styling
+        self.setStyleSheet(get_state_display_stylesheet(theme))
 
     def refresh(self):
         """Refresh display from AppState."""

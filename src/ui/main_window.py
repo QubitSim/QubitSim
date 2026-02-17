@@ -95,6 +95,22 @@ class MainWindow(QMainWindow):
         clear_action.triggered.connect(self.on_clear_circuit)
         edit_menu.addAction(clear_action)
 
+        view_menu = menubar.addMenu("&View")
+
+        light_theme_action = QAction("&Light Theme", self, checkable=True)
+        light_theme_action.setChecked(self.app_state.theme == "light")
+        light_theme_action.triggered.connect(lambda: self.on_set_theme("light"))
+        view_menu.addAction(light_theme_action)
+
+        dark_theme_action = QAction("&Dark Theme", self, checkable=True)
+        dark_theme_action.setChecked(self.app_state.theme == "dark")
+        dark_theme_action.triggered.connect(lambda: self.on_set_theme("dark"))
+        view_menu.addAction(dark_theme_action)
+
+        # Store theme actions for later toggle
+        self.light_theme_action = light_theme_action
+        self.dark_theme_action = dark_theme_action
+
         help_menu = menubar.addMenu("&Help")
 
         about_action = QAction("&About QubitSim", self)
@@ -135,3 +151,32 @@ class MainWindow(QMainWindow):
     def on_about(self):
         # TODO: About dialog
         pass
+
+    def on_set_theme(self, theme_name: str):
+        """Set the application theme."""
+        self.app_state.set_theme(theme_name)
+        
+        # Update menu checkstates
+        self.light_theme_action.setChecked(theme_name == "light")
+        self.dark_theme_action.setChecked(theme_name == "dark")
+        
+        # Trigger theme update in all child widgets
+        self._apply_theme_to_widgets(theme_name)
+
+    def _apply_theme_to_widgets(self, theme_name: str):
+        """Apply theme to all UI widgets."""
+        # Import theme utilities
+        from ui.themes import get_theme, get_canvas_stylesheet
+        
+        theme = get_theme(theme_name)
+        
+        # Update canvas background
+        self.circuit_canvas.set_theme(theme)
+        
+        # Update other widgets
+        self.gate_palette.set_theme(theme)
+        self.control_panel.set_theme(theme)
+        self.state_display.set_theme(theme)
+        
+        # Update main window background
+        self.setStyleSheet(f"QMainWindow {{ background-color: {theme.window_bg}; }}")

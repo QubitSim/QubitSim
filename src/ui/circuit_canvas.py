@@ -14,9 +14,11 @@ from PyQt6.QtGui import (
 
 from qcircuit.objects import GateOp
 from ui.app_state import AppState
+from ui.themes import Theme, LIGHT_THEME
 
 
 ROTATION_GATES = {"RX", "RY", "RZ"}
+CONTROL_MARKERS = {"C", "AC"}  # Control and anticontrol markers
 
 
 class CircuitCanvas(QWidget):
@@ -30,6 +32,7 @@ class CircuitCanvas(QWidget):
         super().__init__(parent)
 
         self.app_state = app_state
+        self.current_theme = LIGHT_THEME
 
         # Visual settings
         self.cell_width = 80
@@ -39,7 +42,21 @@ class CircuitCanvas(QWidget):
 
         self.setAcceptDrops(True)
         self._update_minimum_size()
-        self.setStyleSheet("background-color: white;")
+        self._apply_stylesheet()
+
+        # Connect to state changes to update the step indicator
+        self.app_state.state_changed.connect(self.update)
+        self.app_state.circuit_changed.connect(self.update)
+
+    def _apply_stylesheet(self):
+        """Apply current theme stylesheet."""
+        self.setStyleSheet(f"background-color: {self.current_theme.canvas_bg};")
+
+    def set_theme(self, theme: Theme):
+        """Update widget theme."""
+        self.current_theme = theme
+        self._apply_stylesheet()
+        self.update()
 
     # ------------------------------------------------------------------
     # Qt paint pipeline
@@ -53,11 +70,12 @@ class CircuitCanvas(QWidget):
         self._draw_wires(painter)
         self._draw_qubit_labels(painter)
         self._draw_step_labels(painter)
+        self._draw_control_links(painter)  # Draw control links before gates
         self._draw_gates(painter)
         self._draw_current_step_indicator(painter)
 
     def _draw_grid(self, painter):
-        pen = QPen(QColor(220, 220, 220), 1, Qt.PenStyle.DashLine)
+        pen = QPen(QColor(self.current_theme.grid_color), 1, Qt.PenStyle.DashLine)
         painter.setPen(pen)
 
         for step in range(self.app_state.num_steps + 1):
@@ -67,7 +85,7 @@ class CircuitCanvas(QWidget):
             painter.drawLine(x, y1, x, y2)
 
     def _draw_wires(self, painter):
-        painter.setPen(QPen(QColor(60, 60, 60), 3))
+        painter.setPen(QPen(QColor(self.current_theme.wire_color), 3))
 
         for q in range(self.app_state.num_qubits):
             y = self.top_margin + q * self.cell_height + self.cell_height // 2
@@ -80,7 +98,7 @@ class CircuitCanvas(QWidget):
 
     def _draw_qubit_labels(self, painter):
         painter.setFont(QFont("Arial", 10))
-        painter.setPen(Qt.GlobalColor.black)
+        painter.setPen(QColor(self.current_theme.qubit_label_color))
 
         for q in range(self.app_state.num_qubits):
             y = self.top_margin + q * self.cell_height + self.cell_height // 2
@@ -93,12 +111,35 @@ class CircuitCanvas(QWidget):
 
     def _draw_step_labels(self, painter):
         painter.setFont(QFont("Arial", 9))
-        painter.setPen(QColor(100, 100, 100))
+        painter.setPen(QColor(self.current_theme.step_label_color))
 
         for step in range(self.app_state.num_steps):
             x = self.left_margin + step * self.cell_width + self.cell_width // 2
             rect = QRect(x - 20, 5, 40, self.top_margin - 10)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, f"t{step}")
+
+    def _draw_control_links(self, painter):
+        """Draw lines connecting control markers to their controlled gates."""
+        painter.setPen(QPen(QColor(self.current_theme.control_link_color), 2))
+        
+        for step in range(self.app_state.num_steps):
+            for qubit in range(self.app_state.num_qubits):
+                gate = self.app_state.steps[step][qubit]
+                if gate is None:
+                    continue
+                
+                # If this gate has controls, draw a line from control to this gate
+                if gate.controls or gate.anti_controls:
+                    control_qubits = gate.controls or gate.anti_controls
+                    for ctrl_qubit in control_qubits:
+                        # Calculate positions
+                        x = self.left_margin + step * self.cell_width + self.cell_width // 2
+                        
+                        ctrl_y = self.top_margin + ctrl_qubit * self.cell_height + self.cell_height // 2
+                        gate_y = self.top_margin + qubit * self.cell_height + self.cell_height // 2
+                        
+                        # Draw vertical line connecting them
+                        painter.drawLine(x, ctrl_y, x, gate_y)
 
     def _draw_gates(self, painter):
         painter.setFont(QFont("Arial", 11, QFont.Weight.Bold))
@@ -112,8 +153,27 @@ class CircuitCanvas(QWidget):
                 x = self.left_margin + step * self.cell_width
                 y = self.top_margin + qubit * self.cell_height
 
-                painter.setPen(QPen(QColor(50, 50, 200), 2))
-                painter.setBrush(QColor(200, 220, 255))
+                # Special handling for control markers
+                if gate.name == "C":
+                    # Draw filled circle for control marker
+                    painter.setPen(QPen(QColor(self.current_theme.control_button_border), 2))
+                    painter.setBrush(QColor(self.current_theme.control_button_border))
+                    cx = x + self.cell_width // 2
+                    cy = y + self.cell_height // 2
+                    painter.drawEllipse(cx - 6, cy - 6, 12, 12)
+                    continue
+                elif gate.name == "AC":
+                    # Draw open circle for anticontrol marker
+                    painter.setPen(QPen(QColor(self.current_theme.control_button_border), 2))
+                    painter.setBrush(Qt.BrushStyle.NoBrush)
+                    cx = x + self.cell_width // 2
+                    cy = y + self.cell_height // 2
+                    painter.drawEllipse(cx - 6, cy - 6, 12, 12)
+                    continue
+
+                # Regular gate drawing
+                painter.setPen(QPen(QColor(self.current_theme.gate_button_border), 2))
+                painter.setBrush(QColor(self.current_theme.gate_button_bg))
 
                 padding = 8
                 rect = QRect(
@@ -124,7 +184,7 @@ class CircuitCanvas(QWidget):
                 )
                 painter.drawRoundedRect(rect, 5, 5)
 
-                painter.setPen(QColor(0, 0, 100))
+                painter.setPen(QColor(self.current_theme.text_primary))
                 if gate.params and "theta" in gate.params:
                     label = f"{gate.name}\nθ={gate.params['theta']:.2f}"
                 else:
@@ -136,7 +196,7 @@ class CircuitCanvas(QWidget):
         if self.app_state.current_step >= self.app_state.num_steps:
             return
 
-        painter.setPen(QPen(QColor(255, 100, 100), 3))
+        painter.setPen(QPen(QColor(self.current_theme.step_indicator_color), 3))
         painter.setBrush(Qt.BrushStyle.NoBrush)
 
         x = self.left_margin + self.app_state.current_step * self.cell_width
@@ -169,15 +229,55 @@ class CircuitCanvas(QWidget):
                 0 <= qubit < self.app_state.num_qubits):
             return
 
-        params = {"theta": theta} if gate_name in ROTATION_GATES else None
+        # Check if this is a control/anticontrol marker
+        if gate_name in CONTROL_MARKERS:
+            # Just place the marker as-is
+            op = GateOp(
+                name=gate_name,
+                targets=[qubit]
+            )
+            self.app_state.add_gate(step, op)
+        else:
+            # Check if there's a control marker at the same step on another qubit
+            control_qubit = None
+            control_type = None
+            
+            for q in range(self.app_state.num_qubits):
+                if q != qubit:  # Look for control marker on different qubit
+                    marker = self.app_state.steps[step][q]
+                    if marker and marker.name in CONTROL_MARKERS:
+                        control_qubit = q
+                        control_type = marker.name
+                        break
+            
+            params = {"theta": theta} if gate_name in ROTATION_GATES else None
+            
+            if control_type == "C":
+                # Regular control
+                op = GateOp(
+                    name=gate_name,
+                    targets=[qubit],
+                    controls=[control_qubit],
+                    params=params
+                )
+            elif control_type == "AC":
+                # Anticontrol
+                op = GateOp(
+                    name=gate_name,
+                    targets=[qubit],
+                    anti_controls=[control_qubit],
+                    params=params
+                )
+            else:
+                # No control marker, just a regular gate
+                op = GateOp(
+                    name=gate_name,
+                    targets=[qubit],
+                    params=params
+                )
+            
+            self.app_state.add_gate(step, op)
 
-        op = GateOp(
-            name=gate_name,
-            targets=[qubit],
-            params=params
-        )
-
-        self.app_state.add_gate(step, op)
         self.update()
         self.circuit_changed.emit()
 

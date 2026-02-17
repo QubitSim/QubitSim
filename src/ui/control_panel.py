@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 from ui.app_state import AppState
+from ui.themes import Theme, LIGHT_THEME, get_control_panel_stylesheet
 
 
 class ControlPanel(QFrame):
@@ -23,6 +24,7 @@ class ControlPanel(QFrame):
         super().__init__(parent)
 
         self.app_state = app_state
+        self.current_theme = LIGHT_THEME
 
         self._init_ui()
         self._sync_from_state()
@@ -62,22 +64,22 @@ class ControlPanel(QFrame):
         # --- Execution buttons -----------------------------------------
 
         self.step_button = self._make_button(
-            "Step", "#4CAF50", self.app_state.step
+            "Step", self.app_state.step
         )
         layout.addWidget(self.step_button)
 
         self.run_to_button = self._make_button(
-            "Run To", "#2196F3", self._on_run_to
+            "Run To", self._on_run_to
         )
         layout.addWidget(self.run_to_button)
 
         self.run_all_button = self._make_button(
-            "Run All", "#2196F3", self.app_state.run_all
+            "Run All", self.app_state.run_all
         )
         layout.addWidget(self.run_all_button)
 
         self.reset_button = self._make_button(
-            "Reset", "#FF9800", self.app_state.reset
+            "Reset", self.app_state.reset
         )
         layout.addWidget(self.reset_button)
 
@@ -86,31 +88,97 @@ class ControlPanel(QFrame):
         # --- Status ----------------------------------------------------
 
         self.status_label = QLabel("Ready")
-        self.status_label.setStyleSheet("font-style: italic;")
         layout.addWidget(self.status_label)
 
     def _bold_label(self, text: str) -> QLabel:
         lbl = QLabel(text)
-        lbl.setStyleSheet("font-weight: bold;")
         return lbl
 
-    def _make_button(self, text, color, callback):
+    def _make_button(self, text, callback):
         btn = QPushButton(text)
         btn.clicked.connect(callback)
-        btn.setStyleSheet(f"""
+        # Will be styled when theme is applied
+        return btn
+
+    def set_theme(self, theme: Theme):
+        """Update widget theme."""
+        self.current_theme = theme
+        
+        # Apply general stylesheet
+        self.setStyleSheet(get_control_panel_stylesheet(theme))
+        
+        # Apply button-specific colors
+        self._update_button_colors()
+    
+    def _update_button_colors(self):
+        """Update button colors based on theme."""
+        theme = self.current_theme
+        
+        # Step button (blue)
+        step_style = f"""
             QPushButton {{
-                background-color: {color};
-                color: white;
+                background-color: {theme.step_button_color};
+                color: {theme.button_text_color};
                 font-weight: bold;
                 padding: 6px 16px;
                 border-radius: 4px;
                 min-width: 70px;
+                border: none;
             }}
             QPushButton:hover {{
-                background-color: {color}AA;
+                background-color: {self._lighten_color(theme.step_button_color)};
             }}
-        """)
-        return btn
+        """
+        self.step_button.setStyleSheet(step_style)
+        
+        # Run buttons (green)
+        run_style = f"""
+            QPushButton {{
+                background-color: {theme.run_button_color};
+                color: {theme.button_text_color};
+                font-weight: bold;
+                padding: 6px 16px;
+                border-radius: 4px;
+                min-width: 70px;
+                border: none;
+            }}
+            QPushButton:hover {{
+                background-color: {self._lighten_color(theme.run_button_color)};
+            }}
+        """
+        self.run_to_button.setStyleSheet(run_style)
+        self.run_all_button.setStyleSheet(run_style)
+        
+        # Reset button (orange)
+        reset_style = f"""
+            QPushButton {{
+                background-color: {theme.reset_button_color};
+                color: {theme.button_text_color};
+                font-weight: bold;
+                padding: 6px 16px;
+                border-radius: 4px;
+                min-width: 70px;
+                border: none;
+            }}
+            QPushButton:hover {{
+                background-color: {self._lighten_color(theme.reset_button_color)};
+            }}
+        """
+        self.reset_button.setStyleSheet(reset_style)
+    
+    @staticmethod
+    def _lighten_color(hex_color: str) -> str:
+        """Lighten a hex color by reducing darkness."""
+        try:
+            hex_color = hex_color.lstrip('#')
+            r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+            # Increase brightness
+            r = min(255, int(r * 1.2))
+            g = min(255, int(g * 1.2))
+            b = min(255, int(b * 1.2))
+            return f"#{r:02x}{g:02x}{b:02x}"
+        except:
+            return hex_color
 
     def _sync_from_state(self):
         """Synchronize UI from AppState."""

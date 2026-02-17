@@ -19,12 +19,14 @@ class AppState(QObject):
     state_changed = pyqtSignal()
     system_changed = pyqtSignal()
     selection_changed = pyqtSignal()
+    theme_changed = pyqtSignal(str)  # Emits theme name
 
     def __init__(self, num_qubits: int, num_steps: int):
         super().__init__()
 
         self.num_qubits = num_qubits
         self.num_steps = num_steps
+        self.theme = "light"  # Default theme
 
         # steps[step][qubit] -> GateOp | None
         self.steps: list[list[GateOp | None]] = [
@@ -67,9 +69,37 @@ class AppState(QObject):
         if not (0 <= qubit < self.num_qubits):
             raise IndexError("Invalid qubit")
 
-        if self.steps[step][qubit] is not None:
-            self.steps[step][qubit] = None
-            self.circuit_changed.emit()
+        gate = self.steps[step][qubit]
+        if gate is None:
+            return
+
+        # If removing a control marker, also remove any gate that depends on it
+        if gate.name in {"C", "AC"}:
+            # Find and remove the gate that uses this control
+            for q in range(self.num_qubits):
+                if q != qubit:
+                    other_gate = self.steps[step][q]
+                    if other_gate:
+                        if gate.name == "C" and other_gate.controls == [qubit]:
+                            self.steps[step][q] = None
+                        elif gate.name == "AC" and other_gate.anti_controls == [qubit]:
+                            self.steps[step][q] = None
+        
+        # If removing a gate with control, also remove the control marker
+        if gate.controls:
+            for c_qubit in gate.controls:
+                control_gate = self.steps[step][c_qubit]
+                if control_gate and control_gate.name == "C":
+                    self.steps[step][c_qubit] = None
+        
+        if gate.anti_controls:
+            for ac_qubit in gate.anti_controls:
+                control_gate = self.steps[step][ac_qubit]
+                if control_gate and control_gate.name == "AC":
+                    self.steps[step][ac_qubit] = None
+
+        self.steps[step][qubit] = None
+        self.circuit_changed.emit()
 
     def clear_circuit(self):
         self.steps = [
@@ -89,6 +119,12 @@ class AppState(QObject):
     def set_selected_theta(self, theta: float):
         self.selected_theta = theta
         self.selection_changed.emit()
+
+    def set_theme(self, theme_name: str):
+        """Change the application theme."""
+        if theme_name in {"light", "dark"}:
+            self.theme = theme_name
+            self.theme_changed.emit(theme_name)
 
     def step(self):
         if self.current_step < self.num_steps:
