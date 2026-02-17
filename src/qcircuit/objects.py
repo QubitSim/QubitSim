@@ -10,6 +10,9 @@ Standard Gates:
 - S
 - T
 
+Measurement:
+- M
+
 Rotational Gates:
 - Rx
 - Ry
@@ -37,6 +40,7 @@ class GateOp:
     GateOp("RX", targets=[1], params={"theta": 1.5708})
     GateOp("CNOT", targets=[1], controls=[0])
     GateOp("SWAP", targets=[0, 2])
+    GateOp("M", targets=[0])
     ```
     """
     name: str                 # "H", "X", "RX", "SWAP", ...

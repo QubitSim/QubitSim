@@ -57,13 +57,18 @@ class CircuitInterpreter:
             self._apply_step(step)
         return self.qc
 
+    def build_step_circuit(self, step: list[GateOp | None]) -> QuantumCircuit:
+        self.qc = QuantumCircuit(self.num_qubits)
+        self._apply_step(step)
+        return self.qc
+
     def _apply_step(self, step: list[GateOp | None]):
         for op in step:
             if op is None:
                 continue
             
             # Skip control markers themselves - they're attached to gates
-            if op.name in {"C", "AC"}:
+            if op.name in {"C", "AC", "M"}:
                 continue
             
             if op.name not in GATE_DISPATCH:
