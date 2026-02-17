@@ -50,6 +50,8 @@ def apply_h(qc: QuantumCircuit, op: GateOp): qc.h(op.targets[0])
 def apply_x(qc: QuantumCircuit, op: GateOp): qc.x(op.targets[0])
 def apply_y(qc: QuantumCircuit, op: GateOp): qc.y(op.targets[0])
 def apply_z(qc: QuantumCircuit, op: GateOp): qc.z(op.targets[0])
+def apply_s(qc: QuantumCircuit, op: GateOp): qc.s(op.targets[0])
+def apply_t(qc: QuantumCircuit, op: GateOp): qc.t(op.targets[0])
 
 def apply_rx(qc: QuantumCircuit, op: GateOp):
     qc.rx(op.params["theta"], op.targets[0])
@@ -66,7 +68,7 @@ def apply_swap(qc: QuantumCircuit, op: GateOp):
 
 def apply_controlled(qc: QuantumCircuit, op: GateOp):
     # Generic controlled-U
-    base_gate = op.name  # e.g. "X", "Z", "H"
+    base_gate = op.name  # e.g. "X", "Z", "H", "S", "T", etc.
     ctrl = op.controls
     tgt = op.targets
 
@@ -78,6 +80,16 @@ def apply_controlled(qc: QuantumCircuit, op: GateOp):
         qc.cz(ctrl[0], tgt[0])
     elif base_gate == "H":
         qc.ch(ctrl[0], tgt[0])
+    elif base_gate == "S":
+        qc.cs(ctrl[0], tgt[0])
+    elif base_gate == "T":
+        qc.ct(ctrl[0], tgt[0])
+    elif base_gate == "RX":
+        qc.crx(op.params["theta"], ctrl[0], tgt[0])
+    elif base_gate == "RY":
+        qc.cry(op.params["theta"], ctrl[0], tgt[0])
+    elif base_gate == "RZ":
+        qc.crz(op.params["theta"], ctrl[0], tgt[0])
     else:
         raise ValueError(f"Unsupported controlled gate {base_gate}")
     
@@ -91,6 +103,8 @@ GATE_DISPATCH: dict[str, callable] = {
     "X": apply_x,
     "Y": apply_y,
     "Z": apply_z,
+    "S": apply_s,
+    "T": apply_t,
     "RX": apply_rx,
     "RY": apply_ry,
     "RZ": apply_rz,
