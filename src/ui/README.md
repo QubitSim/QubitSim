@@ -4,17 +4,25 @@ PyQt6-based graphical user interface for the QubitSim quantum circuit simulator.
 
 ## Overview
 
-The UI module provides an interactive desktop application for building and visualizing quantum circuits. It implements a drag-and-drop interface where users can construct circuits by placing gates on a grid representing qubits and time steps.
+The UI module provides an interactive desktop application for building and visualizing quantum circuits. It implements a drag-and-drop interface where users can construct circuits by placing gates on a grid representing qubits and time steps, with a centralized state model to keep widgets in sync.
 
 ## Architecture
 
-The UI is organized into the following components:
+The UI is organized around a single application state object (`AppState`) and a set of focused widgets that react to its signals.
 
 ### Main Window (`main_window.py`)
 The primary application window that coordinates all UI components:
 - Menu bar for file operations (New, Open, Save)
+- View menu for theme selection (light/dark)
 - Integrated layout with splitters for flexible sizing
 - Signal/slot connections between components
+
+### Application State (`app_state.py`)
+Single source of truth for UI and simulation state:
+- Circuit structure (`steps[step][qubit]`)
+- Execution state (current step, system, probabilities)
+- Selection state (gate, theta)
+- Emits signals that UI widgets listen to
 
 ### Circuit Canvas (`circuit_canvas.py`)
 Interactive canvas for circuit construction:
@@ -23,13 +31,14 @@ Interactive canvas for circuit construction:
 - Visual indication of current execution step
 - Right-click to remove gates
 - Configurable number of qubits (1-16)
+- Supports control/anticontrol markers and rotation gates
 
 ### Gate Palette (`gate_palette.py`)
 Scrollable palette of available quantum gates:
 - Single-qubit gates: H, X, Y, Z, S, T
-- Draggable gate buttons
-- Organized by category
-- Placeholders for rotation gates and control operations (coming soon)
+- Rotation gates: Rx(θ), Ry(θ), Rz(θ) with angle control
+- Control and anti-control markers
+- Draggable gate buttons organized by category
 
 ### State Display (`state_display.py`)
 Multi-tab display of quantum state information:
@@ -41,6 +50,7 @@ Multi-tab display of quantum state information:
 Execution controls:
 - **Qubits spinner**: Adjust number of qubits (1-16)
 - **Step button**: Execute one time step
+- **Run To button**: Execute to a target step
 - **Run All button**: Execute all remaining steps
 - **Reset button**: Reset to initial state |0⟩
 
@@ -49,8 +59,7 @@ Execution controls:
 ### Running the Application
 
 ```bash
-cd src
-python3 main.py
+python src/main.py
 ```
 
 ### Building a Circuit
@@ -62,7 +71,8 @@ python3 main.py
 
 ### Executing the Circuit
 
-- **Step**: Execute gates at the current time step (indicated by red outline)
+- **Step**: Execute gates at the current time step (indicated by outline)
+- **Run To**: Execute up to the target step
 - **Run All**: Execute all remaining steps sequentially
 - **Reset**: Return to initial state |000...0⟩
 
@@ -78,19 +88,17 @@ The UI integrates with existing QubitSim modules:
 
 - **`core.system.System`**: Quantum state representation
 - **`core.gates`**: Gate definitions (H, X, Y, Z, S, T)
-- **`circuit.interpreter`**: Circuit execution (integration pending)
+- **`qcircuit.backend.QiskitBackend`**: Circuit execution
+- **`qcircuit.objects.GateOp`**: Gate operation descriptors
 
 ## Future Enhancements
 
 The current implementation provides a solid foundation. Planned improvements include:
 
-1. **Circuit Execution**: Full integration with `CircuitInterpreter` to apply gates
-2. **Rotation Gates**: Dialog for parameterized gates (Rx(θ), Ry(θ), Rz(θ))
-3. **Control Gates**: Support for CNOT and multi-controlled operations
-4. **File I/O**: Save/load circuits in JSON format
-5. **Bloch Sphere**: 3D visualization for single-qubit states
-6. **Measurement**: Visual measurement operation with collapse
-7. **Export**: Circuit export to Qiskit/Cirq format
+1. **File I/O**: Save/load circuits in JSON format
+2. **Bloch Sphere**: 3D visualization for single-qubit states
+3. **Measurement**: Visual measurement operation with collapse
+4. **Export**: Circuit export to Qiskit/Cirq format
 
 ## Design Principles
 
@@ -112,16 +120,18 @@ The UI follows QubitSim's core design principles:
 ```
 ui/
 ├── __init__.py           # Module initialization
+├── app_state.py          # Centralized UI state
 ├── main_window.py        # Main application window
 ├── circuit_canvas.py     # Circuit building canvas
 ├── gate_palette.py       # Draggable gate palette
 ├── state_display.py      # Quantum state visualization
-└── control_panel.py      # Execution controls
+├── control_panel.py      # Execution controls
+└── themes.py             # Theme definitions and styles
 ```
 
 ## Development Notes
 
 - All UI code is in `/src/ui` directory
-- Core quantum logic (`/src/core`) and circuit logic (`/src/circuit`) are not modified
+- Core quantum logic (`/src/core`) and circuit logic (`/src/qcircuit`) are not modified
 - The UI is designed to be extended without breaking existing functionality
 - Uses PyQt6's signal/slot mechanism for component communication

@@ -44,6 +44,7 @@ class AppState(QObject):
         # Quantum system outputs (produced elsewhere)
         self.statevector = None
         self.measurement_probs = None
+        self.measurement_results = []
         self.qubit_views = None
         self.system = None
         
@@ -178,6 +179,10 @@ class AppState(QObject):
         self.measurement_probs = probs
         self.system_changed.emit()
 
+    def set_measurement_results(self, results):
+        self.measurement_results = results
+        self.system_changed.emit()
+
     def set_qubit_views(self, views):
         self.qubit_views = views
         self.system_changed.emit()
@@ -193,6 +198,7 @@ class AppState(QObject):
                 self.system = result['system']
                 self.set_statevector(result['statevector'])
                 self.set_measurement_probs(result['probabilities'])
+                self.set_measurement_results(result.get('measurements', []))
         except Exception as e:
             print(f"Error executing circuit: {e}")
             self._initialize_system()
@@ -203,4 +209,5 @@ class AppState(QObject):
         self.system = System(self.num_qubits)
         self.statevector = None
         self.measurement_probs = None
+        self.measurement_results = []
         self.system_changed.emit()

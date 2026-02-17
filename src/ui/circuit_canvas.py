@@ -19,6 +19,7 @@ from ui.themes import Theme, LIGHT_THEME
 
 ROTATION_GATES = {"RX", "RY", "RZ"}
 CONTROL_MARKERS = {"C", "AC"}  # Control and anticontrol markers
+MEASUREMENT_GATES = {"M"}
 
 
 class CircuitCanvas(QWidget):
@@ -171,6 +172,33 @@ class CircuitCanvas(QWidget):
                     painter.drawEllipse(cx - 6, cy - 6, 12, 12)
                     continue
 
+                # Measurement gate drawing
+                if gate.name in MEASUREMENT_GATES:
+                    painter.setPen(QPen(QColor(self.current_theme.gate_button_border), 2))
+                    painter.setBrush(QColor(self.current_theme.gate_button_bg))
+
+                    padding = 8
+                    rect = QRect(
+                        x + padding,
+                        y + padding,
+                        self.cell_width - 2 * padding,
+                        self.cell_height - 2 * padding
+                    )
+                    painter.drawRoundedRect(rect, 5, 5)
+                    painter.setPen(QColor(self.current_theme.text_primary))
+                    painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "M")
+                    continue
+
+                if gate.name == "X":
+                    painter.setPen(QPen(QColor(self.current_theme.pauli_x_button_border), 2))
+                    painter.setBrush(Qt.BrushStyle.NoBrush)
+                    cx = x + self.cell_width // 2
+                    cy = y + self.cell_height // 2
+                    painter.drawEllipse(cx - 8, cy - 8, 16, 16)
+                    painter.drawLine(cx - 6, cy, cx + 6, cy)
+                    painter.drawLine(cx, cy - 6, cx, cy + 6)
+                    continue
+
                 # Regular gate drawing
                 painter.setPen(QPen(QColor(self.current_theme.gate_button_border), 2))
                 painter.setBrush(QColor(self.current_theme.gate_button_bg))
@@ -232,6 +260,12 @@ class CircuitCanvas(QWidget):
         # Check if this is a control/anticontrol marker
         if gate_name in CONTROL_MARKERS:
             # Just place the marker as-is
+            op = GateOp(
+                name=gate_name,
+                targets=[qubit]
+            )
+            self.app_state.add_gate(step, op)
+        elif gate_name in MEASUREMENT_GATES:
             op = GateOp(
                 name=gate_name,
                 targets=[qubit]

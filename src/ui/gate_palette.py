@@ -175,10 +175,13 @@ class GatePalette(QWidget):
             ("Z", "Z"),
             ("S", "S"),
             ("T", "T"),
+            ("M", "M"),
         ]
         
         for gate_name, display in standard_gates:
             btn = GateButton(gate_name, self.app_state, display)
+            if gate_name == "M":
+                btn.setToolTip("Measurement")
             self.all_buttons.append(btn)
             layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
         

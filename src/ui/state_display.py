@@ -152,6 +152,11 @@ class StateDisplay(QWidget):
             f"Non-zero components: {non_zero}/{dim}\n"
         )
 
+        if self.app_state.measurement_results:
+            last = self.app_state.measurement_results[-1]
+            qubits = ", ".join(str(q) for q in last["qubits"])
+            text += f"\nLast measurement: q[{qubits}] -> {last['outcome']}\n"
+
         self.details_text.setPlainText(text)
 
     def clear(self):

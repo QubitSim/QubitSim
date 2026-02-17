@@ -30,6 +30,12 @@ class Theme:
     control_button_border: str
     control_button_hover: str
     control_button_pressed: str
+
+    # Pauli X button (special case for better visibility)
+    pauli_x_button_bg: str
+    pauli_x_button_border: str
+    pauli_x_button_hover: str
+    pauli_x_button_pressed: str
     
     # Canvas
     canvas_bg: str
@@ -71,6 +77,12 @@ LIGHT_THEME = Theme(
     control_button_border="#C84040",
     control_button_hover="#FFE8E8",
     control_button_pressed="#FFC4C4",
+
+    # Pauli X button (Black)
+    pauli_x_button_bg="#000000",
+    pauli_x_button_border="#000000",
+    pauli_x_button_hover="#333333",
+    pauli_x_button_pressed="#000000",
     
     # Canvas
     canvas_bg="#FFFFFF",
@@ -113,7 +125,13 @@ DARK_THEME = Theme(
     control_button_border="#FF8080",
     control_button_hover="#6B3F3F",
     control_button_pressed="#4A2828",
-    
+
+    # Pauli X button (Bright white for visibility)
+    pauli_x_button_bg="#FFFFFF",
+    pauli_x_button_border="#FFFFFF",
+    pauli_x_button_hover="#E0E0E0",
+    pauli_x_button_pressed="#CCCCCC",
+
     # Canvas
     canvas_bg="#1A1A1A",
     wire_color="#D0D0D0",
