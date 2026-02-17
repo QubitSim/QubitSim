@@ -116,6 +116,27 @@ def test_measurement_probabilities():
     
     return True
 
+def test_measurement_integration():
+    """Test that measurements collapse state in AppState"""
+    print("\nTesting measurement integration...")
+
+    app_state = AppState(num_qubits=1, num_steps=2)
+
+    app_state.add_gate(0, GateOp("X", targets=[0]))
+    app_state.add_gate(1, GateOp("M", targets=[0]))
+
+    app_state.run_all()
+
+    state = app_state.system.state[:, 0]
+    expected = np.array([0, 1])
+
+    assert app_state.measurement_results, "Missing measurement results"
+    assert app_state.measurement_results[0]["outcome"] == "1"
+    assert np.allclose(state, expected), f"Expected {expected}, got {state}"
+
+    print("✓ Measurement integration works")
+    return True
+
 def main():
     print("=" * 60)
     print("AppState Integration Tests")
@@ -124,7 +145,8 @@ def main():
     tests = [
         test_appstate_integration,
         test_qubit_count_change,
-        test_measurement_probabilities
+        test_measurement_probabilities,
+        test_measurement_integration
     ]
     
     results = []

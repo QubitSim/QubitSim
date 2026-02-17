@@ -361,6 +361,75 @@ def test_controlled_rotation():
         print(f"  Got: {state}")
         return False
 
+def test_measurement_deterministic():
+    """Test measurement collapses |1> deterministically"""
+    print("Testing deterministic measurement...")
+    backend = QiskitBackend(num_qubits=1)
+
+    steps = [
+        [GateOp("X", targets=[0])],
+        [GateOp("M", targets=[0])]
+    ]
+    result = backend.execute(steps)
+
+    state = result['system'].state[:, 0]
+    measurements = result.get('measurements', [])
+
+    expected_state = np.array([0, 1])
+    if not measurements:
+        print("✗ Measurement results missing")
+        return False
+
+    outcome = measurements[0]['outcome']
+    if outcome != "1":
+        print(f"✗ Measurement outcome unexpected: {outcome}")
+        return False
+
+    if np.allclose(state, expected_state):
+        print("✓ Deterministic measurement test passed")
+        return True
+    else:
+        print("✗ Deterministic measurement test failed")
+        print(f"  Expected: {expected_state}")
+        print(f"  Got: {state}")
+        return False
+
+def test_measurement_collapse():
+    """Test measurement collapses a superposition"""
+    print("Testing measurement collapse...")
+    backend = QiskitBackend(num_qubits=1, rng=np.random.default_rng(123))
+
+    steps = [
+        [GateOp("H", targets=[0])],
+        [GateOp("M", targets=[0])]
+    ]
+    result = backend.execute(steps)
+
+    state = result['system'].state[:, 0]
+    measurements = result.get('measurements', [])
+
+    if not measurements:
+        print("✗ Measurement results missing")
+        return False
+
+    outcome = measurements[0]['outcome']
+    if outcome == "0":
+        expected = np.array([1, 0])
+    elif outcome == "1":
+        expected = np.array([0, 1])
+    else:
+        print(f"✗ Invalid measurement outcome: {outcome}")
+        return False
+
+    if np.allclose(state, expected):
+        print("✓ Measurement collapse test passed")
+        return True
+    else:
+        print("✗ Measurement collapse test failed")
+        print(f"  Expected: {expected}")
+        print(f"  Got: {state}")
+        return False
+
 def main():
     print("=" * 50)
     print("Qiskit Backend Integration Tests")
@@ -380,6 +449,8 @@ def main():
         test_anticontrolled_x,
         test_controlled_s,
         test_controlled_rotation,
+        test_measurement_deterministic,
+        test_measurement_collapse,
     ]
     
     results = []
