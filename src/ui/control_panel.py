@@ -51,7 +51,16 @@ class ControlPanel(QFrame):
 
         layout.addSpacing(20)
 
-        # --- Target step -----------------------------------------------
+        # --- Steps -----------------------------------------------------
+
+        layout.addWidget(self._bold_label("Steps:"))
+
+        self.steps_spinbox = QSpinBox()
+        self.steps_spinbox.setRange(1, 100)
+        self.steps_spinbox.valueChanged.connect(self._on_num_steps_changed)
+        layout.addWidget(self.steps_spinbox)
+
+        layout.addSpacing(20)
 
         layout.addWidget(self._bold_label("Run to:"))
 
@@ -185,6 +194,10 @@ class ControlPanel(QFrame):
         self.qubits_spinbox.blockSignals(True)
         self.qubits_spinbox.setValue(self.app_state.num_qubits)
         self.qubits_spinbox.blockSignals(False)
+
+        self.steps_spinbox.blockSignals(True)
+        self.steps_spinbox.setValue(self.app_state.num_steps)
+        self.steps_spinbox.blockSignals(False)
 
         self.target_step_spinbox.setMaximum(
             max(0, self.app_state.num_steps - 1)

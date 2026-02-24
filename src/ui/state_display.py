@@ -31,7 +31,6 @@ class StateDisplay(QWidget):
         super().__init__(parent)
 
         self.app_state = app_state
-        self.setMinimumWidth(300)
         self.current_theme = LIGHT_THEME
 
         self._init_ui()
