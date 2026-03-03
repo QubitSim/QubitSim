@@ -74,10 +74,13 @@ class CircuitInterpreter:
             if op.name not in GATE_DISPATCH:
                 raise ValueError(f"Unknown gate {op.name}")
             
+            # Gates that handle their own controls (Toffoli, Fredkin, X3, etc)
+            if op.name in {"Toffoli", "CCNOT", "Fredkin", "CSWAP", "X3", "CCCX"}:
+                # These gates have their own apply functions that handle controls
+                GATE_DISPATCH[op.name](self.qc, op)
             # Handle controlled gates
-            if op.controls:
-                GATE_DISPATCH["C"](self.qc, op)
-            # Handle anticontrolled gates
+            elif op.controls:
+                apply_controlled(self.qc, op)
             elif op.anti_controls:
                 # Create a modified op with controls instead of anti_controls
                 # The apply_anticontrolled will flip the control bit
