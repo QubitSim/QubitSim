@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QSplitter
+    QMainWindow, QWidget, QVBoxLayout, QSplitter, QScrollArea
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction
@@ -20,9 +20,10 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("QubitSim - Quantum Circuit Simulator")
         self.setGeometry(100, 100, 1400, 800)
+        self.setMinimumSize(800, 500)
 
         # Centralized application state
-        self.app_state = AppState(num_qubits=4, num_steps=10)
+        self.app_state = AppState(num_qubits=4, num_steps=20)
 
         self._init_ui()
         self._create_menu_bar()
@@ -32,27 +33,43 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
-        main_layout = QVBoxLayout(central_widget)
+        self.main_layout = QVBoxLayout(central_widget)
+        self.main_layout.setContentsMargins(4, 4, 4, 4)
 
-        content_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.content_splitter = QSplitter(Qt.Orientation.Horizontal)
+        # Allow every panel to collapse to a small but usable size
+        self.content_splitter.setChildrenCollapsible(False)
 
+        # --- Gate palette (left) ---
         self.gate_palette = GatePalette(self.app_state)
-        content_splitter.addWidget(self.gate_palette)
+        self.gate_palette.setMinimumWidth(120)
+        self.content_splitter.addWidget(self.gate_palette)
 
+        # --- Circuit canvas wrapped in a scroll area (centre) ---
         self.circuit_canvas = CircuitCanvas(self.app_state)
-        content_splitter.addWidget(self.circuit_canvas)
 
+        self.canvas_scroll = QScrollArea()
+        self.canvas_scroll.setWidget(self.circuit_canvas)
+        self.canvas_scroll.setWidgetResizable(True)          # canvas fills scroll area when it's smaller
+        self.canvas_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.canvas_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.canvas_scroll.setMinimumWidth(300)
+        self.content_splitter.addWidget(self.canvas_scroll)
+
+        # --- State display (right) ---
         self.state_display = StateDisplay(self.app_state)
-        content_splitter.addWidget(self.state_display)
+        self.state_display.setMinimumWidth(200)
+        self.content_splitter.addWidget(self.state_display)
 
-        content_splitter.setStretchFactor(0, 1)
-        content_splitter.setStretchFactor(1, 3)
-        content_splitter.setStretchFactor(2, 2)
+        # Proportional initial sizes: palette=1, canvas=4, state=2
+        self.content_splitter.setStretchFactor(0, 1)
+        self.content_splitter.setStretchFactor(1, 4)
+        self.content_splitter.setStretchFactor(2, 2)
 
-        main_layout.addWidget(content_splitter)
+        self.main_layout.addWidget(self.content_splitter, stretch=1)
 
         self.control_panel = ControlPanel(self.app_state)
-        main_layout.addWidget(self.control_panel)
+        self.main_layout.addWidget(self.control_panel)
 
     def _connect_state_signals(self):
         """
@@ -165,18 +182,25 @@ class MainWindow(QMainWindow):
 
     def _apply_theme_to_widgets(self, theme_name: str):
         """Apply theme to all UI widgets."""
-        # Import theme utilities
-        from ui.themes import get_theme, get_canvas_stylesheet
-        
+        from ui.themes import get_theme
+
         theme = get_theme(theme_name)
-        
-        # Update canvas background
+
+        # Canvas and its scroll area must share the same background colour so
+        # neither the QScrollArea frame nor its viewport bleeds through.
+        canvas_bg = theme.canvas_bg
+        self.canvas_scroll.setStyleSheet(
+            f"QScrollArea {{ background-color: {canvas_bg}; border: none; }}"
+        )
+        self.canvas_scroll.viewport().setStyleSheet(
+            f"background-color: {canvas_bg};"
+        )
         self.circuit_canvas.set_theme(theme)
-        
+
         # Update other widgets
         self.gate_palette.set_theme(theme)
         self.control_panel.set_theme(theme)
         self.state_display.set_theme(theme)
-        
+
         # Update main window background
         self.setStyleSheet(f"QMainWindow {{ background-color: {theme.window_bg}; }}")

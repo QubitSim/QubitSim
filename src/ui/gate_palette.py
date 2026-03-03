@@ -120,7 +120,7 @@ class GatePalette(QWidget):
         
     def __init__(self, app_state: AppState, parent=None, ):
         super().__init__(parent)
-        self.setMaximumWidth(200)
+        self.setMinimumWidth(120)
         self.current_theta = 0.0
         self.app_state = app_state
         self.current_theme = LIGHT_THEME

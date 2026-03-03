@@ -5,8 +5,8 @@ The circuit canvas is where users construct quantum circuits by dragging and
 dropping gates onto horizontal wires representing qubits.
 """
 
-from PyQt6.QtWidgets import QWidget
-from PyQt6.QtCore import Qt, pyqtSignal, QRect
+from PyQt6.QtWidgets import QWidget, QSizePolicy
+from PyQt6.QtCore import Qt, pyqtSignal, QRect, QSize
 from PyQt6.QtGui import (
     QPainter, QPen, QColor, QFont,
     QDragEnterEvent, QDropEvent
@@ -42,7 +42,8 @@ class CircuitCanvas(QWidget):
         self.left_margin = 60
 
         self.setAcceptDrops(True)
-        self._update_minimum_size()
+        # Expand to fill available space but also grow beyond it (scroll area takes care of overflow)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._apply_stylesheet()
 
         # Connect to state changes to update the step indicator
@@ -50,14 +51,36 @@ class CircuitCanvas(QWidget):
         self.app_state.circuit_changed.connect(self.update)
 
     def _apply_stylesheet(self):
-        """Apply current theme stylesheet."""
-        self.setStyleSheet(f"background-color: {self.current_theme.canvas_bg};")
+        """Apply current theme stylesheet directly to this widget."""
+        # Set the background via the palette so it is not affected by
+        # ancestor QScrollArea / viewport stylesheet inheritance.
+        from PyQt6.QtGui import QPalette
+        palette = self.palette()
+        palette.setColor(QPalette.ColorRole.Window, QColor(self.current_theme.canvas_bg))
+        self.setAutoFillBackground(True)
+        self.setPalette(palette)
 
     def set_theme(self, theme: Theme):
         """Update widget theme."""
         self.current_theme = theme
         self._apply_stylesheet()
         self.update()
+
+    # ------------------------------------------------------------------
+    # Size hints – drive the QScrollArea
+    # ------------------------------------------------------------------
+
+    def _canvas_width(self) -> int:
+        return self.left_margin + self.app_state.num_steps * self.cell_width + 40
+
+    def _canvas_height(self) -> int:
+        return self.top_margin + self.app_state.num_qubits * self.cell_height + 40
+
+    def sizeHint(self) -> QSize:
+        return QSize(self._canvas_width(), self._canvas_height())
+
+    def minimumSizeHint(self) -> QSize:
+        return QSize(self._canvas_width(), self._canvas_height())
 
     # ------------------------------------------------------------------
     # Qt paint pipeline
@@ -340,10 +363,8 @@ class CircuitCanvas(QWidget):
     # ------------------------------------------------------------------
 
     def _update_minimum_size(self):
-        self.setMinimumSize(
-            self.left_margin + self.app_state.num_steps * self.cell_width + 40,
-            self.top_margin + self.app_state.num_qubits * self.cell_height + 40
-        )
+        """Notify the scroll area that our preferred size has changed."""
+        self.updateGeometry()
 
     def set_num_qubits(self, num_qubits: int):
         self.app_state.num_qubits = num_qubits
