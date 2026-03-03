@@ -147,8 +147,13 @@ class GatePalette(QWidget):
         
         # Create tabs for each category
         self.tabs.addTab(self._create_single_qubit_tab(), "Single")
+        self.tabs.addTab(self._create_pauli_phase_tab(), "Pauli & Phase")
         self.tabs.addTab(self._create_rotation_tab(), "Rotation")
         self.tabs.addTab(self._create_control_tab(), "Control")
+        self.tabs.addTab(self._create_advanced_tab(), "Advanced")
+        self.tabs.addTab(self._create_algorithm_tab(), "Algorithm")
+        self.tabs.addTab(self._create_oracle_tab(), "Oracle")
+        self.tabs.addTab(self._create_tools_tab(), "Tools")
         
         layout.addWidget(self.tabs)
         
@@ -258,6 +263,128 @@ class GatePalette(QWidget):
         self.anticontrol_btn = ControlButton("AC", self.app_state)
         self.all_buttons.append(self.anticontrol_btn)
         layout.addWidget(self.anticontrol_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        layout.addStretch()
+        return widget
+    
+    def _create_pauli_phase_tab(self) -> QWidget:
+        """Create tab for Pauli and phase gates."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        pauli_gates = [
+            ("I", "I"),
+            ("Sdg", "S†"),
+            ("Tdg", "T†"),
+        ]
+        
+        for gate_name, display in pauli_gates:
+            btn = GateButton(gate_name, self.app_state, display)
+            self.all_buttons.append(btn)
+            layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        layout.addSpacing(10)
+        
+        # U3 gate button
+        u3_btn = GateButton("U3", self.app_state, "U3(θ,φ,λ)")
+        u3_btn.setToolTip("Universal single-qubit gate with 3 parameters")
+        self.all_buttons.append(u3_btn)
+        layout.addWidget(u3_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        layout.addStretch()
+        return widget
+    
+    def _create_advanced_tab(self) -> QWidget:
+        """Create tab for advanced multi-qubit gates."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        advanced_gates = [
+            ("Toffoli", "Toffoli"),
+            ("Fredkin", "Fredkin"),
+            ("iSWAP", "iSWAP"),
+            ("X3", "3-Control X"),
+        ]
+        
+        for gate_name, display in advanced_gates:
+            btn = GateButton(gate_name, self.app_state, display)
+            self.all_buttons.append(btn)
+            layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        layout.addStretch()
+        return widget
+    
+    def _create_algorithm_tab(self) -> QWidget:
+        """Create tab for algorithm components."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        algorithm_gates = [
+            ("H_LAYER", "H Layer"),
+            ("GROVER_DIFFUSION", "Grover Diffusion"),
+            ("QFT", "QFT"),
+            ("QFT_DAG", "QFT†"),
+        ]
+        
+        for gate_name, display in algorithm_gates:
+            btn = GateButton(gate_name, self.app_state, display)
+            self.all_buttons.append(btn)
+            layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        layout.addStretch()
+        return widget
+    
+    def _create_oracle_tab(self) -> QWidget:
+        """Create tab for oracle components."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        info = QLabel("Oracle components for\nsearch and marking")
+        info.setWordWrap(True)
+        layout.addWidget(info)
+        
+        oracle_gates = [
+            ("ORACLE_MARK_STATE", "Mark State"),
+            ("ORACLE_PARITY", "Mark Parity"),
+            ("ORACLE_PHASE", "Phase Oracle"),
+        ]
+        
+        for gate_name, display in oracle_gates:
+            btn = GateButton(gate_name, self.app_state, display)
+            self.all_buttons.append(btn)
+            layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        layout.addStretch()
+        return widget
+    
+    def _create_tools_tab(self) -> QWidget:
+        """Create tab for visualization tools."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        info = QLabel("Tools for circuit\nvisualization")
+        info.setWordWrap(True)
+        layout.addWidget(info)
+        
+        tool_gates = [
+            ("BARRIER", "Barrier"),
+            ("LABEL", "Label"),
+        ]
+        
+        for gate_name, display in tool_gates:
+            btn = GateButton(gate_name, self.app_state, display)
+            self.all_buttons.append(btn)
+            layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
         
         layout.addStretch()
         return widget
