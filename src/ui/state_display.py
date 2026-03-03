@@ -2,9 +2,13 @@
 State Display Widget
 
 Displays the current quantum state in various representations:
-- State vector (amplitudes)
-- Measurement probabilities
-- State details
+- State vector (amplitudes) - Text
+- Measurement probabilities - Text & Visualization
+- State details - Text
+- Probability Chart - Interactive bar chart with filtering
+- Bloch Sphere - 3D visualization for single-qubit states
+- Phase Visualization - Amplitude magnitudes with phase coloring
+- Statistics - Entropy, purity, and distribution analysis
 """
 
 from PyQt6.QtWidgets import (
@@ -15,6 +19,12 @@ from PyQt6.QtGui import QFont
 
 from ui.app_state import AppState
 from ui.themes import Theme, LIGHT_THEME, get_state_display_stylesheet
+from ui.visualization_widgets import (
+    ProbabilityChartWidget,
+    BlochSphereWidget,
+    StateVectorPhaseWidget,
+    EnhancedStatisticsWidget
+)
 
 
 EPS = 1e-10
@@ -22,16 +32,17 @@ EPS = 1e-10
 
 class StateDisplay(QWidget):
     """
-    Display quantum state information.
+    Display quantum state information with rich visualizations.
 
     This widget is read-only and reacts to AppState updates.
+    Provides both text-based and visual representations of quantum states.
     """
 
     def __init__(self, app_state: AppState, parent=None):
         super().__init__(parent)
 
         self.app_state = app_state
-        self.setMinimumWidth(300)
+        self.setMinimumWidth(400)  # Wider for better visualization
         self.current_theme = LIGHT_THEME
 
         self._init_ui()
@@ -50,17 +61,31 @@ class StateDisplay(QWidget):
 
         self.tabs = QTabWidget()
 
+        # Text-based tabs (original)
         self.amplitudes_text = QTextEdit(readOnly=True)
-        self.amplitudes_text.setFont(QFont("Courier", 10))
+        self.amplitudes_text.setFont(QFont("Courier", 9))
         self.tabs.addTab(self.amplitudes_text, "Amplitudes")
 
         self.probabilities_text = QTextEdit(readOnly=True)
-        self.probabilities_text.setFont(QFont("Courier", 10))
+        self.probabilities_text.setFont(QFont("Courier", 9))
         self.tabs.addTab(self.probabilities_text, "Probabilities")
 
         self.details_text = QTextEdit(readOnly=True)
-        self.details_text.setFont(QFont("Courier", 9))
+        self.details_text.setFont(QFont("Courier", 8))
         self.tabs.addTab(self.details_text, "Details")
+
+        # Visualization tabs (new)
+        self.prob_chart = ProbabilityChartWidget()
+        self.tabs.addTab(self.prob_chart, "Prob. Chart")
+
+        self.bloch_sphere = BlochSphereWidget()
+        self.tabs.addTab(self.bloch_sphere, "Bloch Sphere")
+
+        self.phase_viz = StateVectorPhaseWidget()
+        self.tabs.addTab(self.phase_viz, "Phase Plot")
+
+        self.statistics = EnhancedStatisticsWidget()
+        self.tabs.addTab(self.statistics, "Statistics")
 
         layout.addWidget(self.tabs)
 
@@ -97,6 +122,12 @@ class StateDisplay(QWidget):
         self._update_amplitudes(system)
         self._update_probabilities(system)
         self._update_details(system)
+        
+        # Update visualizations
+        self.prob_chart.update_state(system.state, system.num_qubits)
+        self.bloch_sphere.update_state(system.state, system.num_qubits)
+        self.phase_viz.update_state(system.state, system.num_qubits)
+        self.statistics.update_state(system.state, system.num_qubits)
 
     def _update_amplitudes(self, system):
         text = "State Vector:\n\n"
