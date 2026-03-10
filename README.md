@@ -1,21 +1,5 @@
 # Qiskit Backend Integration - Quick Start Guide
 
-## Implementation Complete
-
-The temporary Qiskit backend has been successfully integrated into QubitSim. The application is now fully functional with real quantum circuit simulation.
-
-## What's New
-
-### Backend Layer (`src/qcircuit/`)
-- **`backend.py`** (NEW): Qiskit simulation backend
-- **`interpreter.py`** (UPDATED): Builds Qiskit circuits from UI grid
-- **`objects.py`**: Gate operations and dispatch (unchanged)
-
-### Integration
-- **`ui/app_state.py`**: Now executes circuits and manages quantum state
-- **`ui/state_display.py`**: Displays live quantum state evolution
-- Control panel buttons automatically trigger circuit execution
-
 ## How to Use
 
 ### 1. Install Dependencies
@@ -57,6 +41,10 @@ The right panel shows:
 - **Amplitudes**: Complex amplitudes for each basis state
 - **Probabilities**: Measurement probabilities for each outcome
 - **Details**: System metadata and state information
+- **Probability chart**: Visual representation of probabilities
+- **Bloch Sphere**: Visualization of single-qubit states
+- **Phase Plot**: Visualization of complex amplitudes
+- **Statistics**: Numerical data about the current state
 
 ## Testing
 
@@ -70,14 +58,23 @@ PYTHONPATH=src python test_backend.py
 PYTHONPATH=src python test_integration.py
 
 # UI smoke tests (all passing)
-python test_ui_smoke.py
+PYTHONPATH=src python test_ui_smoke.py
+
+# To capture the new UI tests, run with:
+PYTHONPATH=src python test_ui_updates.py
+
+# To test the visualizations
+PYTHONPATH=src python test_visualizations.py
+
 ```
 
 With virtual environment:
 ```bash
 PYTHONPATH=src ./venv/bin/python test_backend.py
 PYTHONPATH=src ./venv/bin/python test_integration.py
-./venv/bin/python test_ui_smoke.py
+PYTHONPATH=src ./venv/bin/python test_ui_smoke.py
+PYTHONPATH=src ./venv/bin/python test_ui_updates.py
+PYTHONPATH=src ./venv/bin/python test_visualizations.py
 ```
 
 ## Example: Creating a Bell State
@@ -131,36 +128,40 @@ When ready to implement the custom backend in `core/`:
 4. Create `CustomBackend` in `qcircuit/backend.py`
 5. Replace `QiskitBackend` with `CustomBackend` in `app_state.py`
 
-The interface is already designed for easy backend swapping.
 ## File Structure
 
 ```
 QubitSim/
 ├── src/
-│   ├── main.py                    # Application entry point
-│   ├── core/                      # Custom backend (future)
-│   │   ├── system.py             # System class
-│   │   ├── operator.py           # Operator class
-│   │   └── gate.py               # Gate implementations
-│   ├── qcircuit/                  # Intermediary layer
-│   │   ├── backend.py            # * NEW: Qiskit backend
-│   │   ├── interpreter.py        # * UPDATED: Circuit builder
-│   │   └── objects.py            # Gate definitions
-│   └── ui/                        # PyQt6 UI components
-│       ├── main_window.py        # Main window
-│       ├── app_state.py          # * UPDATED: Backend integration
-│       ├── circuit_canvas.py     # Circuit editor
-│       ├── gate_palette.py       # Gate selection
-│       ├── control_panel.py      # Execution controls
-│       └── state_display.py      # * UPDATED: State visualization
-├── test_backend.py               # * NEW: Backend tests
-├── test_integration.py           # * NEW: Integration tests
-├── test_ui_smoke.py              # * NEW: UI tests
-├── IMPLEMENTATION.md             # * NEW: Technical details
-├── README.md                     # * THIS FILE
-└── requirements.txt              # * UPDATED: Added Qiskit
-
-* = Created or modified during integration
+│   ├── main.py                         # Application entry point
+│   ├── core/                           # Custom backend (future)
+│   │   ├── __init__.py
+│   │   ├── system.py                  # System class
+│   │   ├── operator.py                # Operator class
+│   │   ├── gate.py                    # Gate base class
+│   │   └── gates.py                   # Gate implementations
+│   ├── qcircuit/                       # Intermediary layer
+│   │   ├── __init__.py
+│   │   ├── backend.py                 # Qiskit backend
+│   │   ├── interpreter.py             # Circuit builder
+│   │   └── objects.py                 # Gate definitions
+│   └── ui/                             # PyQt6 UI components
+│       ├── __init__.py
+│       ├── README.md                  # UI documentation
+│       ├── main_window.py             # Main window
+│       ├── app_state.py               # Backend integration
+│       ├── circuit_canvas.py          # Circuit editor
+│       ├── gate_palette.py            # Gate selection
+│       ├── control_panel.py           # Execution controls
+│       ├── state_display.py           # State visualization
+│       ├── themes.py                  # UI themes
+│       ├── visualization_utils.py     # Visualization utilities
+│       └── visualization_widgets.py   # Visualization components
+├── test_backend.py                    # Backend tests
+├── test_integration.py                # Integration tests
+├── test_ui_smoke.py                   # UI tests
+├── README.md                          # This file
+└── requirements.txt                   # Dependencies
 ```
 
 ## Technical Notes
