@@ -38,19 +38,19 @@ class RotationGate(Gate):
                 [np.cos(theta/2), -1j * np.sin(theta/2)],
                 [-1j * np.sin(theta/2), np.cos(theta/2)]
             ])
-            name = f"R_X({theta})"
+            name = f"RX"
         elif axis == "Y":
             op = np.array([
                 [np.cos(theta/2), -np.sin(theta/2)],
                 [np.sin(theta/2), np.cos(theta/2)]
             ])
-            name = f"R_Y({theta})"
+            name = f"RY"
         elif axis == "Z":
             op = np.array([
                 [np.exp(-1j * theta / 2), 0],
                 [0, np.exp(1j * theta / 2)]
             ])
-            name = f"R_Z({theta})"
+            name = f"RZ"
         else:
             raise ValueError(f"Invalid rotation axis: {axis}")
 

@@ -72,7 +72,8 @@ def apply_rz(qc: QuantumCircuit, op: GateOp):
 
 def apply_u3(qc: QuantumCircuit, op: GateOp):
     """Universal single-qubit gate U3(θ, φ, λ)"""
-    qc.u(op.params["theta"], op.params["phi"], op.params["lam"], op.targets[0])
+    params = op.params or {}
+    qc.u(params.get("theta", 0.0), params.get("phi", 0.0), params.get("lam", 0.0), op.targets[0])
 
 def apply_swap(qc: QuantumCircuit, op: GateOp):
     q0, q1 = op.targets
@@ -118,14 +119,14 @@ def apply_anticontrolled(qc: QuantumCircuit, op: GateOp):
 def apply_toffoli(qc: QuantumCircuit, op: GateOp):
     """Toffoli gate (CCNOT) - 3-qubit controlled-NOT
     Controls: 2 qubits, Target: 1 qubit"""
-    if len(op.controls) != 2 or len(op.targets) != 1:
+    if not op.controls or len(op.controls) != 2 or len(op.targets) != 1:
         raise ValueError("Toffoli gate requires 2 controls and 1 target")
     qc.ccx(op.controls[0], op.controls[1], op.targets[0])
 
 def apply_fredkin(qc: QuantumCircuit, op: GateOp):
     """Fredkin gate (CSWAP) - Controlled SWAP
     Control: 1 qubit, Targets: 2 qubits to swap"""
-    if len(op.controls) != 1 or len(op.targets) != 2:
+    if not op.controls or len(op.controls) != 1 or len(op.targets) != 2:
         raise ValueError("Fredkin gate requires 1 control and 2 targets")
     qc.cswap(op.controls[0], op.targets[0], op.targets[1])
 
@@ -139,15 +140,10 @@ def apply_iswap(qc: QuantumCircuit, op: GateOp):
 def apply_x3(qc: QuantumCircuit, op: GateOp):
     """3-Control X gate (CCCX)
     Controls: 3 qubits, Target: 1 qubit"""
-    if len(op.controls) != 3 or len(op.targets) != 1:
+    if not op.controls or len(op.controls) != 3 or len(op.targets) != 1:
         raise ValueError("3-Control X gate requires 3 controls and 1 target")
     # Implement using Qiskit's mcx (multi-control-X)
     qc.mcx(op.controls, op.targets[0])
-
-def apply_anticontrolled(qc: QuantumCircuit, op: GateOp):
-    qc.x(op.controls[0])
-    apply_controlled(qc, op)
-    qc.x(op.controls[0])
 
 # Algorithm Components
 
@@ -255,7 +251,8 @@ def apply_oracle_mark_state(qc: QuantumCircuit, op: GateOp):
     then apply a multi-control-Z, then apply X gates again.
     """
     qubits = op.targets
-    target_state = op.params.get("state", "0" * len(qubits))
+    params = op.params or {}
+    target_state = params.get("state", "0" * len(qubits))
     
     # Convert integer to binary string if needed
     if isinstance(target_state, int):
@@ -290,7 +287,7 @@ def apply_oracle_parity(qc: QuantumCircuit, op: GateOp):
     Odd parity: number of 1s is odd
     """
     qubits = op.targets
-    parity = op.params.get("parity", "even")
+    parity = (op.params or {}).get("parity", "even")
     
     # For parity detection, we can use a multi-control gate
     # Even parity: apply Z to last qubit when even number of others are 1
@@ -323,7 +320,7 @@ def apply_custom_phase_oracle(qc: QuantumCircuit, op: GateOp):
     Applies e^(iθ)|target⟩⟨target|
     """
     qubits = op.targets
-    angle = op.params.get("angle", np.pi)
+    angle = (op.params or {}).get("angle", np.pi)
     
     # Apply global phase using RZ on a single control qubit
     # This is simplified - in a full implementation, would use proper phase marker
@@ -354,7 +351,7 @@ def apply_label(qc: QuantumCircuit, op: GateOp):
     Labels don't affect quantum computation, only add annotations for clarity.
     In Qiskit, we can use barrier with a label as a workaround.
     """
-    label_text = op.params.get("text", "Label")
+    label_text = (op.params or {}).get("text", "Label")
     qubits = op.targets if op.targets else list(range(qc.num_qubits))
     # Qiskit doesn't have native labels, but we can add metadata
     # For now, we'll just add as a comment in the circuit

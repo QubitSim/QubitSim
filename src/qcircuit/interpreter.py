@@ -38,7 +38,7 @@ Since I'm not carying about performance right now, I can just apply each gate in
 
 """
 from qiskit import QuantumCircuit
-from qcircuit.objects import GateOp, GATE_DISPATCH
+from qcircuit.objects import GateOp, GATE_DISPATCH, apply_controlled
 
 class CircuitInterpreter:
     def __init__(self, num_qubits: int):

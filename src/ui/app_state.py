@@ -56,10 +56,16 @@ class AppState(QObject):
         if not (0 <= step < self.num_steps):
             raise IndexError("Invalid step")
 
-        for qubit in gate_op.targets:
-            if not (0 <= qubit < self.num_qubits):
-                raise IndexError("Invalid qubit")
+        # Collect all qubit cells this gate occupies (targets + built-in controls)
+        all_qubits = list(gate_op.targets or [])
+        if gate_op.controls:
+            all_qubits += gate_op.controls
+        if gate_op.anti_controls:
+            all_qubits += gate_op.anti_controls
 
+        for qubit in all_qubits:
+            if not (0 <= qubit < self.num_qubits):
+                raise IndexError(f"Invalid qubit {qubit}")
             self.steps[step][qubit] = gate_op
 
         self.circuit_changed.emit()
@@ -74,32 +80,46 @@ class AppState(QObject):
         if gate is None:
             return
 
-        # If removing a control marker, also remove any gate that depends on it
-        if gate.name in {"C", "AC"}:
-            # Find and remove the gate that uses this control
+        # Clear every cell in this step that holds the same gate object.
+        # This handles single-qubit gates (trivially) as well as multi-qubit gates
+        # (SWAP, iSWAP, Toffoli, Fredkin, X3, spanning algorithm gates …) whose
+        # GateOp reference is stored in multiple rows.
+        for q in range(self.num_qubits):
+            if self.steps[step][q] is gate:
+                self.steps[step][q] = None
+
+        # If the removed gate was a "C"/"AC" userspace marker, also remove
+        # whichever single-qubit gate in the same step names this qubit as a control.
+        if gate.name == "C":
             for q in range(self.num_qubits):
-                if q != qubit:
-                    other_gate = self.steps[step][q]
-                    if other_gate:
-                        if gate.name == "C" and other_gate.controls == [qubit]:
-                            self.steps[step][q] = None
-                        elif gate.name == "AC" and other_gate.anti_controls == [qubit]:
-                            self.steps[step][q] = None
-        
-        # If removing a gate with control, also remove the control marker
+                other = self.steps[step][q]
+                if other is not None and other.controls and qubit in other.controls:
+                    for q2 in range(self.num_qubits):
+                        if self.steps[step][q2] is other:
+                            self.steps[step][q2] = None
+
+        elif gate.name == "AC":
+            for q in range(self.num_qubits):
+                other = self.steps[step][q]
+                if other is not None and other.anti_controls and qubit in other.anti_controls:
+                    for q2 in range(self.num_qubits):
+                        if self.steps[step][q2] is other:
+                            self.steps[step][q2] = None
+
+        # If the removed gate references userspace "C"/"AC" markers (i.e. it was a
+        # single-qubit gate placed next to a separate control marker), clear those.
         if gate.controls:
             for c_qubit in gate.controls:
-                control_gate = self.steps[step][c_qubit]
-                if control_gate and control_gate.name == "C":
+                m = self.steps[step][c_qubit]
+                if m is not None and m.name == "C":
                     self.steps[step][c_qubit] = None
-        
+
         if gate.anti_controls:
             for ac_qubit in gate.anti_controls:
-                control_gate = self.steps[step][ac_qubit]
-                if control_gate and control_gate.name == "AC":
+                m = self.steps[step][ac_qubit]
+                if m is not None and m.name == "AC":
                     self.steps[step][ac_qubit] = None
 
-        self.steps[step][qubit] = None
         self.circuit_changed.emit()
 
     def clear_circuit(self):

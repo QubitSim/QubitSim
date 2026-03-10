@@ -58,7 +58,7 @@ class U3Gate(Gate):
             [np.cos(theta/2), -np.exp(1j * lam) * np.sin(theta/2)],
             [np.exp(1j * phi) * np.sin(theta/2), np.exp(1j * (phi + lam)) * np.cos(theta/2)]
         ])
-        name = f"U3({theta:.3f},{phi:.3f},{lam:.3f})"
+        name = f"U3"
         super().__init__(op, name)
 
 U3 = U3Gate  # Alias for convenience
